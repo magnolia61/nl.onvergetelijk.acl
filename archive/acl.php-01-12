@@ -1,0 +1,1936 @@
+<?php
+
+require_once 'acl.civix.php';
+
+use CRM_Acl_ExtensionUtil as E;
+
+/**
+ * Implements hook_civicrm_config().
+ *
+ * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_config/
+ */
+function acl_civicrm_config(&$config): void {
+  _acl_civix_civicrm_config($config);
+}
+
+/**
+ * Implements hook_civicrm_install().
+ *
+ * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_install
+ */
+function acl_civicrm_install(): void {
+  _acl_civix_civicrm_install();
+}
+
+/**
+ * Implements hook_civicrm_enable().
+ *
+ * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_enable
+ */
+function acl_civicrm_enable(): void {
+  _acl_civix_civicrm_enable();
+}
+
+function acl_civicrm_custom($op, $groupID, $entityID) {
+
+    return;
+
+}
+
+function acl_civicrm_activate($contactid, $displayname, $ditjaar_array, $allpart_array, $eventrollen_array = NULL) {
+
+    $extdebug = 2;          // 1 = basic // 2 = verbose // 3 = params / 4 = results
+    $apidebug = FALSE;
+
+    $extwrite = 1;
+
+    $contact_id     =   $contactid;
+    $displayname    =   $displayname;
+    $ditjaar_array  =   $ditjaar_array;
+    $allpart_array  =   $allpart_array;
+    $eventrollen    =   $eventrollen_array;
+
+    $ditjaar_pos_kampfunctie    = $allpart_array['result_allpart_pos_kampfunctie'];
+    $ditjaar_pos_kampkort       = $allpart_array['result_allpart_pos_kampkort'];
+
+//  return; // if not, get out of here
+
+    if ($contactid > 0 AND $ditjaar_array) {
+
+        ###################################################################################################
+        wachthond($extdebug,1, "########################################################################");
+        wachthond($extdebug,1, "### ACL - START ACL CHECK VOOR $displayname $ditjaar_pos_kampfunctie $ditjaar_pos_kampkort", "[cid: $contact_id]");
+        wachthond($extdebug,1, "########################################################################");     
+        ###################################################################################################
+
+    } else {
+        wachthond($extdebug,4, "civicrm_custom",            $groupID);
+        return; // if not, get out of here
+    }    
+
+    wachthond($extdebug,3, "ditjaar_array",     $ditjaar_array);
+    wachthond($extdebug,3, "allpart_array",     $allpart_array);
+    wachthond($extdebug,3, "eventrollen_array", $eventrollen_array);
+
+    $ditjaardeelyes         =   $ditjaar_array['ditjaardeelyes'];
+    $ditjaardeelnot         =   $ditjaar_array['ditjaardeelnot'];
+    $ditjaardeelmss         =   $ditjaar_array['ditjaardeelmss'];
+    $ditjaardeelstf         =   $ditjaar_array['ditjaardeelstf'];
+    $ditjaardeeltst         =   $ditjaar_array['ditjaardeeltst'];
+    $ditjaardeeltxt         =   $ditjaar_array['ditjaardeeltxt'];
+    $ditjaarleidyes         =   $ditjaar_array['ditjaarleidyes'];
+    $ditjaarleidnot         =   $ditjaar_array['ditjaarleidnot'];
+    $ditjaarleidmss         =   $ditjaar_array['ditjaarleidmss'];
+    $ditjaarleidstf         =   $ditjaar_array['ditjaarleidstf'];
+    $ditjaarleidtst         =   $ditjaar_array['ditjaarleidtst'];
+    $ditjaarleidtxt         =   $ditjaar_array['ditjaarleidtxt'];
+
+    // M61: beter ook wel gewoon query op ingevulde taken/rollen hier uit event
+
+    $eventkamp_gedrag_id    =   $eventrollen_array['eventkamp_gedrag_id'];
+    $eventkamp_boekje_id    =   $eventrollen_array['eventkamp_boekje_id'];
+    $eventkamp_keuken_id    =   $eventrollen_array['eventkamp_keuken_id'];
+
+    $ditjaar_pos_part_id                = $allpart_array['result_allpart_pos_part_id'];
+    $ditjaar_pos_deel_part_id           = $allpart_array['result_allpart_pos_deel_part_id'];
+    $ditjaar_pos_leid_part_id           = $allpart_array['result_allpart_pos_leid_part_id'];
+
+    $ditjaar_pos_event_id               = $allpart_array['result_allpart_pos_event_id'];
+    $ditjaar_pos_deel_event_id          = $allpart_array['result_allpart_pos_deel_event_id'];
+    $ditjaar_pos_leid_event_id          = $allpart_array['result_allpart_pos_leid_event_id'];
+
+    $ditjaar_pos_event_type_id          = $allpart_array['result_allpart_pos_event_type_id'];
+    $ditjaar_pos_deel_event_type_id     = $allpart_array['result_allpart_pos_deel_event_type_id'];
+    $ditjaar_pos_leid_event_type_id     = $allpart_array['result_allpart_pos_leid_event_type_id'];
+
+    $ditjaar_pos_part_status_id         = $allpart_array['result_allpart_pos_part_status_id'];
+    $ditjaar_pos_deel_part_status_id    = $allpart_array['result_allpart_pos_deel_part_status_id'];
+    $ditjaar_pos_leid_part_status_id    = $allpart_array['result_allpart_pos_leid_part_status_id'];
+
+    $ditjaar_pos_kampfunctie            = $allpart_array['result_allpart_pos_kampfunctie'];
+    $ditjaar_pos_deel_kampfunctie       = $allpart_array['result_allpart_pos_deel_kampfunctie'];
+    $ditjaar_pos_leid_kampfunctie       = $allpart_array['result_allpart_pos_leid_kampfunctie'];
+
+    $ditjaar_pos_kampkort               = $allpart_array['result_allpart_pos_kampkort'];
+    $ditjaar_pos_deel_kampkort          = $allpart_array['result_allpart_pos_deel_kampkort'];
+    $ditjaar_pos_leid_kampkort          = $allpart_array['result_allpart_pos_leid_kampkort'];
+
+    wachthond($extdebug,2, "ditjaar_pos_kampfunctie",   $ditjaar_pos_kampfunctie);
+    wachthond($extdebug,2, "ditjaar_pos_kampkort",      $ditjaar_pos_kampkort);
+
+    $aclgroupgedrag     = NULL;
+    $group_gedrag       = 0;
+
+    $aclgroupgedrag_kk1 = 1766;
+    $aclgroupgedrag_kk2 = 1767;
+    $aclgroupgedrag_bk1 = 1768;
+    $aclgroupgedrag_bk2 = 1769;
+    $aclgroupgedrag_tk1 = 1770;
+    $aclgroupgedrag_tk2 = 1771;
+    $aclgroupgedrag_jk1 = 1772;
+    $aclgroupgedrag_jk2 = 1773;
+    $aclgroupgedrag_top = 1774;
+
+    $aclgroupgedrag_array = array(
+        $aclgroupgedrag_kk1, $aclgroupgedrag_kk2,
+        $aclgroupgedrag_bk1, $aclgroupgedrag_bk2, 
+        $aclgroupgedrag_tk1, $aclgroupgedrag_tk2,
+        $aclgroupgedrag_jk1, $aclgroupgedrag_jk2,
+        $aclgroupgedrag_top
+    );
+
+    if ($ditjaar_pos_leid_kampkort == 'kk1')   { $aclgroupgedrag = $aclgroupgedrag_kk1; }
+    if ($ditjaar_pos_leid_kampkort == 'kk2')   { $aclgroupgedrag = $aclgroupgedrag_kk2; }
+    if ($ditjaar_pos_leid_kampkort == 'bk1')   { $aclgroupgedrag = $aclgroupgedrag_bk1; }
+    if ($ditjaar_pos_leid_kampkort == 'bk2')   { $aclgroupgedrag = $aclgroupgedrag_bk2; }
+    if ($ditjaar_pos_leid_kampkort == 'tk1')   { $aclgroupgedrag = $aclgroupgedrag_tk1; }
+    if ($ditjaar_pos_leid_kampkort == 'tk2')   { $aclgroupgedrag = $aclgroupgedrag_tk2; }
+    if ($ditjaar_pos_leid_kampkort == 'jk1')   { $aclgroupgedrag = $aclgroupgedrag_jk1; }
+    if ($ditjaar_pos_leid_kampkort == 'jk2')   { $aclgroupgedrag = $aclgroupgedrag_jk2; }
+    if ($ditjaar_pos_leid_kampkort == 'top')   { $aclgroupgedrag = $aclgroupgedrag_top; }
+
+    $aclgroupdrukwerk_kk1 = 1666;
+    $aclgroupdrukwerk_kk2 = 1667;
+    $aclgroupdrukwerk_bk1 = 1668;
+    $aclgroupdrukwerk_bk2 = 1669;
+    $aclgroupdrukwerk_tk1 = 1670;
+    $aclgroupdrukwerk_tk2 = 1671;
+    $aclgroupdrukwerk_jk1 = 1672;
+    $aclgroupdrukwerk_jk2 = 1673;
+    $aclgroupdrukwerk_top = 1674;
+
+    $aclgroupdrukwerk_array = array(
+        $aclgroupdrukwerk_kk1, $aclgroupdrukwerk_kk2,
+        $aclgroupdrukwerk_bk1, $aclgroupdrukwerk_bk2, 
+        $aclgroupdrukwerk_tk1, $aclgroupdrukwerk_tk2,
+        $aclgroupdrukwerk_jk1, $aclgroupdrukwerk_jk2,
+        $aclgroupdrukwerk_top
+    );
+
+    if ($ditjaar_pos_leid_kampkort == 'kk1')   { $aclgroupdrukwerk = $aclgroupdrukwerk_kk1; }
+    if ($ditjaar_pos_leid_kampkort == 'kk2')   { $aclgroupdrukwerk = $aclgroupdrukwerk_kk2; }
+    if ($ditjaar_pos_leid_kampkort == 'bk1')   { $aclgroupdrukwerk = $aclgroupdrukwerk_bk1; }
+    if ($ditjaar_pos_leid_kampkort == 'bk2')   { $aclgroupdrukwerk = $aclgroupdrukwerk_bk2; }
+    if ($ditjaar_pos_leid_kampkort == 'tk1')   { $aclgroupdrukwerk = $aclgroupdrukwerk_tk1; }
+    if ($ditjaar_pos_leid_kampkort == 'tk2')   { $aclgroupdrukwerk = $aclgroupdrukwerk_tk2; }
+    if ($ditjaar_pos_leid_kampkort == 'jk1')   { $aclgroupdrukwerk = $aclgroupdrukwerk_jk1; }
+    if ($ditjaar_pos_leid_kampkort == 'jk2')   { $aclgroupdrukwerk = $aclgroupdrukwerk_jk2; }
+    if ($ditjaar_pos_leid_kampkort == 'top')   { $aclgroupdrukwerk = $aclgroupdrukwerk_top; }
+
+    $aclgroupkeukenchef_kk1 = 1675;
+    $aclgroupkeukenchef_kk2 = 1676;
+    $aclgroupkeukenchef_bk1 = 1677;
+    $aclgroupkeukenchef_bk2 = 1678;
+    $aclgroupkeukenchef_tk1 = 1679;
+    $aclgroupkeukenchef_tk2 = 1680;
+    $aclgroupkeukenchef_jk1 = 1681;
+    $aclgroupkeukenchef_jk2 = 1682;
+    $aclgroupkeukenchef_top = 1683;
+
+    $aclgroupkeukenchef_array = array(
+        $aclgroupkeukenchef_kk1, $aclgroupkeukenchef_kk2,
+        $aclgroupkeukenchef_bk1, $aclgroupkeukenchef_bk2, 
+        $aclgroupkeukenchef_tk1, $aclgroupkeukenchef_tk2,
+        $aclgroupkeukenchef_jk1, $aclgroupkeukenchef_jk2,
+        $aclgroupkeukenchef_top
+    );
+
+    if ($ditjaar_pos_leid_kampkort == 'kk1')   { $aclgroupkeukenchef = $aclgroupkeukenchef_kk1; }
+    if ($ditjaar_pos_leid_kampkort == 'kk2')   { $aclgroupkeukenchef = $aclgroupkeukenchef_kk2; }
+    if ($ditjaar_pos_leid_kampkort == 'bk1')   { $aclgroupkeukenchef = $aclgroupkeukenchef_bk1; }
+    if ($ditjaar_pos_leid_kampkort == 'bk2')   { $aclgroupkeukenchef = $aclgroupkeukenchef_bk2; }
+    if ($ditjaar_pos_leid_kampkort == 'tk1')   { $aclgroupkeukenchef = $aclgroupkeukenchef_tk1; }
+    if ($ditjaar_pos_leid_kampkort == 'tk2')   { $aclgroupkeukenchef = $aclgroupkeukenchef_tk2; }
+    if ($ditjaar_pos_leid_kampkort == 'jk1')   { $aclgroupkeukenchef = $aclgroupkeukenchef_jk1; }
+    if ($ditjaar_pos_leid_kampkort == 'jk2')   { $aclgroupkeukenchef = $aclgroupkeukenchef_jk2; }
+    if ($ditjaar_pos_leid_kampkort == 'top')   { $aclgroupkeukenchef = $aclgroupkeukenchef_top; }
+
+    $aclgroupkeukenteam_kk1 = 1871;
+    $aclgroupkeukenteam_kk2 = 1872;
+    $aclgroupkeukenteam_bk1 = 1873;
+    $aclgroupkeukenteam_bk2 = 1874;
+    $aclgroupkeukenteam_tk1 = 1875;
+    $aclgroupkeukenteam_tk2 = 1876;
+    $aclgroupkeukenteam_jk1 = 1877;
+    $aclgroupkeukenteam_jk2 = 1878;
+    $aclgroupkeukenteam_top = 1879;
+
+    $aclgroupkeukenteam_array = array(
+        $aclgroupkeukenteam_kk1, $aclgroupkeukenteam_kk2,
+        $aclgroupkeukenteam_bk1, $aclgroupkeukenteam_bk2,
+        $aclgroupkeukenteam_tk1, $aclgroupkeukenteam_tk2,
+        $aclgroupkeukenteam_jk1, $aclgroupkeukenteam_jk2,
+        $aclgroupkeukenteam_top
+    );
+
+    if ($ditjaar_pos_leid_kampkort == 'kk1')   { $aclgroupkeukenteam = $aclgroupkeukenteam_kk1; }
+    if ($ditjaar_pos_leid_kampkort == 'kk2')   { $aclgroupkeukenteam = $aclgroupkeukenteam_kk2; }
+    if ($ditjaar_pos_leid_kampkort == 'bk1')   { $aclgroupkeukenteam = $aclgroupkeukenteam_bk1; }
+    if ($ditjaar_pos_leid_kampkort == 'bk2')   { $aclgroupkeukenteam = $aclgroupkeukenteam_bk2; }
+    if ($ditjaar_pos_leid_kampkort == 'tk1')   { $aclgroupkeukenteam = $aclgroupkeukenteam_tk1; }
+    if ($ditjaar_pos_leid_kampkort == 'tk2')   { $aclgroupkeukenteam = $aclgroupkeukenteam_tk2; }
+    if ($ditjaar_pos_leid_kampkort == 'jk1')   { $aclgroupkeukenteam = $aclgroupkeukenteam_jk1; }
+    if ($ditjaar_pos_leid_kampkort == 'jk2')   { $aclgroupkeukenteam = $aclgroupkeukenteam_jk2; }
+    if ($ditjaar_pos_leid_kampkort == 'top')   { $aclgroupkeukenteam = $aclgroupkeukenteam_top; }
+
+    $aclgroupkamp_kk1   = 1853;
+    $aclgroupkamp_kk2   = 1854;
+    $aclgroupkamp_bk1   = 1855;
+    $aclgroupkamp_bk2   = 1856;
+    $aclgroupkamp_tk1   = 1857;
+    $aclgroupkamp_tk2   = 1858;
+    $aclgroupkamp_jk1   = 1859;
+    $aclgroupkamp_jk2   = 1860;
+    $aclgroupkamp_top   = 1861;
+
+    $aclgroupkamp_array = array(
+        $aclgroupkamp_kk1, $aclgroupkamp_kk2,
+        $aclgroupkamp_bk1, $aclgroupkamp_bk2, 
+        $aclgroupkamp_tk1, $aclgroupkamp_tk2,
+        $aclgroupkamp_jk1, $aclgroupkamp_jk2,
+        $aclgroupkamp_top
+    );
+
+    if ($ditjaar_pos_leid_kampkort == 'kk1')   { $aclgroupkamp = $aclgroupkamp_kk1; }
+    if ($ditjaar_pos_leid_kampkort == 'kk2')   { $aclgroupkamp = $aclgroupkamp_kk2; }
+    if ($ditjaar_pos_leid_kampkort == 'bk1')   { $aclgroupkamp = $aclgroupkamp_bk1; }
+    if ($ditjaar_pos_leid_kampkort == 'bk2')   { $aclgroupkamp = $aclgroupkamp_bk2; }
+    if ($ditjaar_pos_leid_kampkort == 'tk1')   { $aclgroupkamp = $aclgroupkamp_tk1; }
+    if ($ditjaar_pos_leid_kampkort == 'tk2')   { $aclgroupkamp = $aclgroupkamp_tk2; }
+    if ($ditjaar_pos_leid_kampkort == 'jk1')   { $aclgroupkamp = $aclgroupkamp_jk1; }
+    if ($ditjaar_pos_leid_kampkort == 'jk2')   { $aclgroupkamp = $aclgroupkamp_jk2; }
+    if ($ditjaar_pos_leid_kampkort == 'top')   { $aclgroupkamp = $aclgroupkamp_top; }
+
+    $aclgrouptopkamp_array          = array(1756);
+
+    $aclgroupkeukenstaf_array       = array(1882); // ALGEMENE ACL GROEP VOOR ALLE KEUKENTEAMLEDEN
+
+    $aclgroupkampleiding_array      = array(1849);
+    $aclgroupkampstaf_array         = array(456);
+    $aclgrouphoofd_array            = array(1976);
+
+    if ($ditjaardeelnot == 1) {
+        acl_remove_from_group($contact_id, $aclgrouptopkamp_array,      'topkamp');
+    }
+
+    if ($ditjaarleidnot == 1) {
+
+        acl_remove_from_group($contact_id, $aclgroupgedrag_array,       'gedrag');
+        acl_remove_from_group($contact_id, $aclgroupdrukwerk_array,     'drukwerk');
+
+        acl_remove_from_group($contact_id, $aclgroupkeukenchef_array,   'keukenchef');
+        acl_remove_from_group($contact_id, $aclgroupkeukenteam_array,   'keukenteam');
+        acl_remove_from_group($contact_id, $aclgroupkeukenstaf_array,   'keukenstaf');
+
+        acl_remove_from_group($contact_id, $aclgroupkamp_array,         'groepkamp');
+
+        acl_remove_from_group($contact_id, $aclgroupkampleiding_array,  'kampleiding');
+        acl_remove_from_group($contact_id, $aclgroupkampstaf_array,     'kampstaf');
+        acl_remove_from_group($contact_id, $aclgrouphoofd_array,        'hoofdleiding');
+
+    }
+
+    if ($ditjaardeelyes == 1 AND $ditjaar_pos_deel_part_id > 0) {
+
+        ###################################################################################################
+        wachthond($extdebug,1, "########################################################################");
+        wachthond($extdebug,1, "### ACL 1.X HUIDIG JAAR DEEL $displayname", "[$ditjaar_pos_leid_kampfunctie $ditjaar_pos_leid_kampkort]");
+        wachthond($extdebug,1, "########################################################################");     
+        ###################################################################################################
+
+        if ($ditjaar_pos_deel_kampkort == 'top' AND $ditjaardeelyes == 1) {
+
+            wachthond($extdebug,1, "### ACL 1.1 START SEGMENT PART DIT EVENT & HUIDIG JAAR TOPKAMP", "[$ditjaar_pos_leid_kampfunctie $ditjaar_pos_leid_kampkort]");
+            wachthond($extdebug,2, "########################################################################");     
+            wachthond($extdebug,1, "### ACL 1.1 a CHECK IF DEELNEMER TOP AL IN DE ACL GROEP ZIT VAN DITJAAR DEEL TOP", "[$displayname $ditjaar_pos_deel_kampfunctie $ditjaar_pos_deel_kampkort]");
+            wachthond($extdebug,2, "########################################################################"); 
+
+            if ($ditjaardeeltop == 1) {
+                $aclgrouptopkamp = 1756;
+            } else {
+                $aclgrouptopkamp = NULL;
+            }
+
+            // M61: hardcoded id of ACL group ditjaar_deel_top
+            $params_groupcontact_topkamp_get = [
+                'checkPermissions' => FALSE,
+                'debug' => $apidebug,               
+                'select' => [
+                    'row_count',
+                    'id', 
+                    'group_id', 
+                    'group_id:name',
+                    'status',
+                ],
+                'where' => [
+                    ['group_id',    '=', $aclgrouptopkamp],
+                    ['contact_id',  '=', $contact_id],
+                ],
+            ];
+            wachthond($extdebug,7, 'params_groupcontact_topkamp_get', $params_groupcontact_topkamp_get);
+            $result_topkamp_get = civicrm_api4('GroupContact', 'get', $params_groupcontact_topkamp_get);
+            wachthond($extdebug,9, 'result_groupcontact_topkamp_get', $result_topkamp_get);
+
+            $group_topkamp_count    = $result_topkamp_get->countMatched();
+            $group_topkamp_status   = $result_topkamp_get[0]['status'] ?? NULL;
+            wachthond($extdebug,3, 'group_topkamp_count',   $group_topkamp_count);
+            wachthond($extdebug,3, 'group_topkamp_status',  $group_topkamp_status);
+
+            if ($group_topkamp_count == 1 AND $group_topkamp_status == 'Added') {
+                $group_topkamp = 1;
+            }
+            wachthond($extdebug,3, 'deel van groep_topkamp',$group_topkamp);
+
+            wachthond($extdebug,2, "########################################################################");
+            wachthond($extdebug,1, "### ACL 1.1 b VOEG DEELNEMERS TOPKAMP TOE AAN ACL GROEP DITJAAR DEEL TOPKAMP", "[$displayname $ditjaar_pos_deel_kampfunctie $ditjaar_pos_deel_kampkort]");
+            wachthond($extdebug,2, "########################################################################");     
+
+            if ($ditjaar_pos_deel_kampkort == 'top' AND $ditjaardeelyes == 1 AND $group_topkamp_count == 0 AND in_array($ditjaar_pos_deel_kampfunctie, array('deelnemer'))) {
+                $params_groupcontact_create = [
+                    'checkPermissions' => FALSE,
+                    'debug' => $apidebug,
+                    'values' => [
+                        'group_id'      => $aclgrouptopkamp,
+                        'contact_id'    => $contact_id,
+                        'status'        => 'Added',
+                    ],
+                ];
+                wachthond($extdebug,7, 'params_groupcontact_create', $params_groupcontact_create);
+                if ($extwrite == 1 AND $aclgrouptopkamp) {
+                    $result_top_create = civicrm_api4('GroupContact', 'create', $params_groupcontact_create);
+                    wachthond($extdebug,1, 'Toegevoegd aan acl group', 'ditjaar_deel_topkamp');
+                }
+            }
+            wachthond($extdebug,2, "########################################################################");     
+            wachthond($extdebug,1, "### ACL 1.1 c INDIEN (WEER) MEE MET TOPKAMP VOEG DAN OOK TOE AAN ACL GROEP DITJAAR DEEL TOPKAMP", "[$displayname $ditjaar_pos_deel_kampfunctie $ditjaar_pos_deel_kampkort]");
+            wachthond($extdebug,2, "########################################################################");     
+
+            if ($ditjaar_pos_deel_kampkort == 'top' AND $ditjaardeelyes == 1 AND $group_topkamp == 1 AND in_array($ditjaar_pos_deel_kampfunctie, array('deelnemer'))) {
+                $params_groupcontact_update = [
+                    'checkPermissions' => FALSE,
+                    'debug' => $apidebug,
+                    'values' => [
+                        'status' => 'Added',
+                    ],
+                    'where' => [
+                        ['group_id',    '=', $aclgrouptopkamp], 
+                        ['contact_id',  '=', $contact_id],
+                    ],
+                ];
+                wachthond($extdebug,7, 'params_groupcontact_update', $params_groupcontact_update);
+                if ($extwrite == 1 AND $aclgrouptopkamp) {
+                    $result_top_update = civicrm_api4('GroupContact', 'update', $params_groupcontact_update);
+                    wachthond($extdebug,1, 'Weer toegevoegd aan acl group', 'ditjaar_deel_topkamp');
+                }
+            }
+            wachthond($extdebug,2, "########################################################################");     
+            wachthond($extdebug,1, "### ACL 1.1 d INDIEN NIET MEE MET TOPKAMP DIT JAAR", "[$displayname $ditjaar_pos_deel_kampfunctie $ditjaar_pos_deel_kampkort]");
+            wachthond($extdebug,2, "########################################################################");     
+
+            if ($ditjaardeelnot == 1 AND $group_topkamp == 1) {
+                $params_groupcontact_remove = [
+                    'checkPermissions' => FALSE,
+                    'debug' => $apidebug,
+                    'values' => [
+                        'status' => 'Removed',
+                    ],
+                    'where' => [
+                        ['group_id',    '=', $aclgrouptopkamp],
+                        ['contact_id',  '=', $contact_id],
+                    ],
+                ];
+                wachthond($extdebug,7, 'params_groupcontact_remove',            $params_groupcontact_remove);
+                if ($extwrite == 1 AND $aclgrouptopkamp) {
+                    $result_top_remove = civicrm_api4('GroupContact', 'update', $params_groupcontact_remove);
+                    wachthond($extdebug,1, 'Verdijderd uit acl group', 'ditjaar_deel_topkamp');
+                }
+            }   
+        }
+    }
+
+    if ($ditjaarleidyes == 1 AND $ditjaar_pos_leid_part_id > 0) {
+
+        ###################################################################################################
+        wachthond($extdebug,1, "########################################################################");
+        wachthond($extdebug,1, "### ACL 2.X HUIDIG JAAR LEID $displayname", "[$ditjaar_pos_leid_kampfunctie $ditjaar_pos_leid_kampkort]");
+        wachthond($extdebug,1, "########################################################################");     
+        ###################################################################################################
+
+        wachthond($extdebug,2, "########################################################################");
+        wachthond($extdebug,1, "### ACL 2.1 b ADD TO ACL_GEDRAG $ditjaar_pos_leid_kampkort OBV EVENTROL", "[CHECK]");
+        wachthond($extdebug,2, "########################################################################");
+
+        $aclgroupgedrag     = NULL;
+        $group_gedrag       = 0;
+
+        $params_groupcontact_gedrag_get = [
+            'checkPermissions' => FALSE,
+            'debug'  => $apidebug,   
+            'select' => [
+                'row_count',
+                'id', 
+                'group_id', 
+                'group_id:name',
+                'group_id:label',
+                'status',
+            ],
+            'where' => [
+                ['group_id',    '=', $aclgroupgedrag], // M61: hardcoded id of ACL group Ditjaar_gedrag
+                ['contact_id',  '=', $contact_id],
+            ],
+        ];
+        wachthond($extdebug,7, 'params_groupcontact_gedrag_get',    $params_groupcontact_gedrag_get);
+        $result_gedrag_get  = civicrm_api4('GroupContact', 'get',   $params_groupcontact_gedrag_get);
+        wachthond($extdebug,9, 'result_groupcontact_gedrag_get',    $result_gedrag_get);
+
+        $group_gedrag_count         = $result_gedrag_get->countMatched();
+        wachthond($extdebug,3, 'group_gedrag_count',        $group_gedrag_count);
+
+        if ($group_gedrag_count == 1) {
+
+            $group_gedrag_status    = $result_gedrag_get[0]['status'] ?? NULL;
+            $group_gedrag_label     = $result_gedrag_get[0]['group_id:label'] ?? NULL;          
+            wachthond($extdebug,1, 'group_gedrag_status',   $group_gedrag_status);
+
+            if ($group_gedrag_status == 'Added') {
+                $group_gedrag = 1;
+                wachthond($extdebug,1, 'deel van ACL groep',$group_gedrag_label);
+            }
+        }
+
+        if ($eventkamp_gedrag_id == $contact_id AND $ditjaarleidyes == 1 AND $group_gedrag_count == 0) {
+
+            wachthond($extdebug,2, "########################################################################");
+            wachthond($extdebug,1, "### ACL 2.1 b ADD TO ACL_GEDRAG $ditjaar_pos_leid_kampkort OBV EVENTROL", "[EERST]");
+            wachthond($extdebug,2, "########################################################################");
+
+            $params_groupcontact_gedrag_create = [
+                'checkPermissions' => FALSE,
+                'debug' => $apidebug,
+                    'values' => [
+                    'group_id'      => $aclgroupgedrag, 
+                    'contact_id'    => $contact_id,
+                    'status'        => 'Added',
+                ],
+            ];
+            wachthond($extdebug,7, 'params_groupcontact_gedrag_create',         $params_groupcontact_gedrag_create);
+            if ($extwrite == 1 AND $aclgroupgedrag) {
+                $result_gedrag_create = civicrm_api4('GroupContact', 'create',  $params_groupcontact_gedrag_create);
+                wachthond($extdebug,1, 'Toegevoegd aan ACL groep',  $group_gedrag_label);
+            }
+        }
+
+        if ($eventkamp_gedrag_id == $contact_id AND $ditjaarleidyes == 1 AND $group_gedrag_count == 1) {
+
+            wachthond($extdebug,2, "########################################################################");
+            wachthond($extdebug,1, "### ACL 2.1 b ADD TO ACL_GEDRAG $ditjaar_pos_leid_kampkort OBV EVENTROL", "[OPNIEUW]");
+            wachthond($extdebug,2, "########################################################################");
+
+            $params_groupcontact_gedrag_update = [
+                'checkPermissions' => FALSE,
+                'debug' => $apidebug,
+                'values' => [
+                    'status' => 'Added',
+                ],
+                'where' => [
+                    ['group_id',    '=', $aclgroupgedrag], 
+                    ['contact_id',  '=', $contact_id],
+                ],
+            ];
+            wachthond($extdebug,7, 'params_groupcontact_gedrag_update',         $params_groupcontact_gedrag_update);
+            if ($extwrite == 1 AND $aclgroupgedrag) {
+                $result_gedrag_update = civicrm_api4('GroupContact', 'update',  $params_groupcontact_gedrag_update);
+                wachthond($extdebug,1, 'Weer toegevoegd aan ACL groep', $group_gedrag_label);
+            }
+        }
+
+        if (($eventkamp_gedrag_id != $contact_id OR $ditjaarleidnot == 1) AND $group_gedrag_count == 1) {
+
+            wachthond($extdebug,2, "########################################################################");
+            wachthond($extdebug,1, "### ACL 2.1 b ADD TO ACL_GEDRAG $ditjaar_pos_leid_kampkort OBV EVENTROL", "[VERWIJDER]");
+            wachthond($extdebug,2, "########################################################################");
+
+            $params_groupcontact_gedrag_remove = [
+                'checkPermissions' => FALSE,
+                'debug' => $apidebug,
+                    'values' => [
+                    'status' => 'Removed',
+                ],
+                'where' => [
+                    ['group_id',    '=', $aclgroupgedrag], 
+                    ['contact_id',  '=', $contact_id],
+                ],
+            ];
+            wachthond($extdebug,7, 'params_groupcontact_gedrag_remove',         $params_groupcontact_gedrag_remove);
+            if ($extwrite == 1 AND $aclgroupgedrag) {
+                $result_gedrag_remove = civicrm_api4('GroupContact', 'update',  $params_groupcontact_gedrag_remove);
+                wachthond($extdebug,1, 'Verwijderd uit ACL groep',  $group_gedrag_label);
+            }
+        }
+
+        wachthond($extdebug,2, "########################################################################");
+        wachthond($extdebug,1, "### ACL 2.2 a ADD TO ACL_DRUKWERK $ditjaar_pos_leid_kampkort OBV EVENTROL", "[CHECK]");
+        wachthond($extdebug,2, "########################################################################");
+
+        $aclgroupdrukwerk   = NULL;
+        $group_drukwerk     = 0;
+
+        $params_groupcontact_drukwerk_get = [
+            'checkPermissions' => FALSE,
+            'debug' => $apidebug,               
+            'select' => [
+                'row_count',
+                'id', 
+                'group_id', 
+                'group_id:name',
+                'group_id:label',
+                'status',
+            ],
+            'where' => [
+                ['group_id',    '=', $aclgroupdrukwerk], // M61: hardcoded id
+                ['contact_id',  '=', $contact_id],
+            ],
+        ];
+        wachthond($extdebug,7, 'params_groupcontact_drukwerk_get',      $params_groupcontact_drukwerk_get);
+        $result_drukwerk_get    = civicrm_api4('GroupContact', 'get',   $params_groupcontact_drukwerk_get);
+        wachthond($extdebug,9, 'result_groupcontact_drukwerk_get',      $result_drukwerk_get);
+
+        $group_drukwerk_count       = $result_drukwerk_get->countMatched();
+        wachthond($extdebug,3, 'group_drukwerk_count',      $group_drukwerk_count);
+
+        if ($group_drukwerk_count == 1) {
+
+            $group_drukwerk_status  = $result_drukwerk_get[0]['status']         ?? NULL;
+            $group_drukwerk_label   = $result_drukwerk_get[0]['group_id:label'] ?? NULL;            
+            wachthond($extdebug,1, 'group_drukwerk_status',     $group_drukwerk_status);
+
+            if ($group_drukwerk_status == 'Added') {
+                $group_drukwerk = 1;
+                wachthond($extdebug,1, 'deel van ACL groep',$group_drukwerk_label);
+            }
+        }       
+
+        if ($eventkamp_boekje_id == $contact_id AND $ditjaarleidyes == 1 AND $group_drukwerk_count == 0) {
+
+            wachthond($extdebug,2, "########################################################################");
+            wachthond($extdebug,1, "### ACL 2.2 b ADD TO ACL_DRUKWERK $ditjaar_pos_leid_kampkort OBV EVENTROL", "[EERST]");
+            wachthond($extdebug,2, "########################################################################");
+
+            $params_groupcontact_drukwerk_create = [
+                'checkPermissions' => FALSE,
+                'debug' => $apidebug,
+                'values' => [
+                    'group_id'      => $aclgroupdrukwerk, 
+                    'contact_id'    => $contact_id,
+                    'status'        => 'Added',
+                ],
+            ];
+            wachthond($extdebug,7, 'params_groupcontact_drukwerk_create',       $params_groupcontact_drukwerk_create);
+            if ($extwrite == 1 AND $aclgroupdrukwerk) {
+                $result_drukwerk_create = civicrm_api4('GroupContact','create', $params_groupcontact_drukwerk_create);
+                wachthond($extdebug,1, 'Toegevoegd aan ACL groep',  $group_drukwerk_label);
+            }
+        }
+
+        if ($eventkamp_boekje_id == $contact_id AND $ditjaarleidyes == 1 AND $group_drukwerk_count == 1) {
+
+            wachthond($extdebug,2, "########################################################################");
+            wachthond($extdebug,1, "### ACL 2.2 c ADD TO ACL_DRUKWERK $ditjaar_pos_leid_kampkort OBV EVENTROL", "[OPNIEUW]");
+            wachthond($extdebug,2, "########################################################################");
+
+            $params_groupcontact_drukwerk_update = [
+                'checkPermissions' => FALSE,
+                'debug' => $apidebug,
+                    'values' => [
+                    'status' => 'Added',
+                    ],
+                'where' => [
+                    ['group_id',    '=', $aclgroupdrukwerk], 
+                    ['contact_id',  '=', $contact_id],
+                ],
+            ];
+            wachthond($extdebug,7, 'params_groupcontact_drukwerk_update',       $params_groupcontact_drukwerk_update);
+            if ($extwrite == 1 AND $aclgroupdrukwerk) {
+                $result_drukwerk_update = civicrm_api4('GroupContact','update', $params_groupcontact_drukwerk_update);
+                wachthond($extdebug,1, 'Weer toegevoegd aan ACL groep', $group_drukwerk_label);
+            }
+        }
+
+        if (($eventkamp_boekje_id != $contact_id OR $ditjaarleidnot == 1) AND $group_drukwerk_count == 1) {
+
+            wachthond($extdebug,2, "########################################################################");
+            wachthond($extdebug,1, "### ACL 2.2 d ADD TO ACL_DRUKWERK $ditjaar_pos_leid_kampkort OBV EVENTROL", "[VERWIJDER]");
+            wachthond($extdebug,2, "########################################################################");
+
+            $params_groupcontact_drukwerk_remove = [
+                'checkPermissions' => FALSE,
+                'debug' => $apidebug,
+                    'values' => [
+                    'status' => 'Removed',
+                ],
+                'where' => [
+                    ['group_id',    '=', $aclgroupdrukwerk], 
+                    ['contact_id',  '=', $contact_id],
+                ],
+            ];
+            wachthond($extdebug,7, 'params_groupcontact_drukwerk_remove',       $params_groupcontact_drukwerk_remove);
+            if ($extwrite == 1 AND $aclgroupdrukwerk) {
+                $result_drukwerk_remove = civicrm_api4('GroupContact','update', $params_groupcontact_drukwerk_remove);
+                wachthond($extdebug,1, 'Verwijderd uit ACL groep',  $group_drukwerk_label);             
+            }
+        }
+
+        wachthond($extdebug,2, "########################################################################");
+        wachthond($extdebug,1, "### ACL 2.3 a ADD TO ACL_KEUKENCHEF $ditjaar_pos_leid_kampkort OBV EVENTROL", "[CHECK]");
+        wachthond($extdebug,2, "########################################################################");
+
+        $aclgroupkeukenchef     = NULL;
+        $group_keukenchef       = 0;
+
+        $params_groupcontact_keukenchef_get = [
+            'checkPermissions' => FALSE,
+            'debug' => $apidebug,
+            'select' => [
+                'row_count',
+                'id',
+                'group_id',
+                'group_id:name',
+                'group_id:label',
+                'status',
+            ],
+            'where' => [
+                ['group_id',    '=', $aclgroupkeukenchef], // M61: hardcoded id of ACL group ditjaar_hoofdkeuken
+                ['contact_id',  '=', $contact_id],
+            ],
+        ];
+
+        wachthond($extdebug,7, 'params_groupcontact_keukenchef_get', $params_groupcontact_keukenchef_get);
+        $result_keukenchef_get = civicrm_api4('GroupContact', 'get', $params_groupcontact_keukenchef_get);
+        wachthond($extdebug,9, 'result_groupcontact_keukenchef_get', $result_keukenchef_get);
+
+        $group_keukenchef_count         = $result_keukenchef_get->countMatched();
+        wachthond($extdebug,3, 'group_keukenchef_count',        $group_keukenchef_count);
+
+        if ($group_keukenchef_count == 1) {
+
+            $group_keukenchef_status    = $result_keukenchef_get[0]['status'] ?? NULL;
+            $group_keukenchef_label     = $result_keukenchef_get[0]['group_id:label'] ?? NULL;          
+            wachthond($extdebug,1, 'group_keukenchef_status',   $group_keukenchef_status);
+
+            if ($group_keukenchef_status == 'Added') {
+                $group_keukenchef = 1;
+                wachthond($extdebug,1, 'deel van ACL groep',    $group_keukenchef_label);
+            }
+        }
+
+        if ($eventkamp_keuken_id == $contact_id AND $ditjaarleidyes == 1 AND $group_keukenchef_count == 0) {
+
+            wachthond($extdebug,2, "########################################################################");
+            wachthond($extdebug,1, "### ACL 2.3 b ADD TO ACL_KEUKENCHEF $ditjaar_pos_leid_kampkort OBV EVENTROL", "[EERST]");
+            wachthond($extdebug,2, "########################################################################");
+
+            $params_groupcontact_keukenchef_create = [
+                'checkPermissions' => FALSE,
+                'debug' => $apidebug,
+                'values' => [
+                    'group_id'      => $aclgroupkeukenchef,
+                    'contact_id'    => $contact_id,
+                    'status'        => 'Added',
+                ],
+            ];
+            wachthond($extdebug,7, 'params_groupcontact_keukenchef_create', $params_groupcontact_keukenchef_create);
+            if ($extwrite == 1 AND $aclgroupkeukenchef) {
+                $result_chef_create = civicrm_api4('GroupContact','create', $params_groupcontact_keukenchef_create);
+                wachthond($extdebug,1, 'Toegevoegd aan ACL groep',  $group_keukenchef_label);
+            }
+        }
+
+        if ($eventkamp_keuken_id == $contact_id AND $ditjaarleidyes == 1 AND $group_keukenchef_count == 1) {
+
+            wachthond($extdebug,2, "########################################################################");
+            wachthond($extdebug,1, "### ACL 2.3 c ADD TO ACL_KEUKENCHEF $ditjaar_pos_leid_kampkort OBV EVENTROL", "[OPNIEUW]");
+            wachthond($extdebug,2, "########################################################################");
+
+            $params_groupcontact_keukenchef_update = [
+                'checkPermissions' => FALSE,
+                'debug' => $apidebug,
+                'values' => [
+                    'status' => 'Added',
+                ],
+                'where' => [
+                    ['group_id',    '=', $aclgroupkeukenchef], 
+                    ['contact_id',  '=', $contact_id],
+                ],
+            ];
+            wachthond($extdebug,7, 'params_groupcontact_keukenchef_update', $params_groupcontact_keukenchef_update);
+            if ($extwrite == 1 AND $aclgroupkeukenchef) {
+                $result_chef_update = civicrm_api4('GroupContact','update', $params_groupcontact_keukenchef_update);
+                wachthond($extdebug,1, 'Weer toegevoegd aan ACL groep', $group_keukenchef_label);
+            }
+        }
+
+        if (($eventkamp_keuken_id != $contact_id OR $ditjaarleidnot == 1) AND $group_keukenchef_count == 1) {
+
+            wachthond($extdebug,2, "########################################################################");
+            wachthond($extdebug,1, "### ACL 2.3 d ADD TO ACL_KEUKENCHEF $ditjaar_pos_leid_kampkort OBV EVENTROL", "[VERWIJDER]");
+            wachthond($extdebug,2, "########################################################################");
+
+            $params_groupcontact_keukenchef_remove = [
+                'checkPermissions' => FALSE,
+                'debug' => $apidebug,
+                'values' => [
+                    'status' => 'Removed',
+                ],
+                'where' => [
+                    ['group_id',    '=', $aclgroupkeukenchef], 
+                    ['contact_id',  '=', $contact_id],
+                ],
+            ];
+            wachthond($extdebug,7, 'params_groupcontact_keukenchef_remove', $params_groupcontact_keukenchef_remove);
+            if ($extwrite == 1 AND $group_keukenchef_count == 1) {
+                $result_chef_remove = civicrm_api4('GroupContact','update', $params_groupcontact_keukenchef_remove);
+                wachthond($extdebug,1, 'Verwijderd uit ACL groep',  $group_keukenchef_label);
+            }
+        }
+
+        wachthond($extdebug,2, "########################################################################");
+        wachthond($extdebug,1, "### ACL 2.4 a ADD TO ACL_KEUKENCHEF $ditjaar_pos_leid_kampkort OBV EVENTROL", "[CHECK]");
+        wachthond($extdebug,2, "########################################################################");
+
+        $aclgroupkeukenteam = NULL;
+        $group_keukenteam   = 0;
+
+        if (in_array($ditjaar_pos_leid_kampfunctie, array('hoofdkeuken', 'keukenteamlid'))) {
+
+            wachthond($extdebug,4, 'ditevent_part_functie',         $ditjaar_pos_leid_kampfunctie);
+            
+            $params_groupcontact_keukenteam_get = [
+                'checkPermissions' => FALSE,
+                'debug' => $apidebug,               
+                'select' => [
+                    'row_count',
+                    'id',
+                    'group_id', 
+                    'group_id:name',
+                    'group_id:label',
+                    'status',
+                ],
+                'where' => [
+                    ['group_id',    '=', $aclgroupkeukenteam], // M61: hardcoded id of ACL group ditjaar_hoofdkeuken
+                    ['contact_id',  '=', $contact_id],
+                ],
+            ];
+            wachthond($extdebug,3, 'params_groupcontact_keukenteam_get',    $params_groupcontact_keukenteam_get);
+            $result_keukenteam_get  = civicrm_api4('GroupContact', 'get',   $params_groupcontact_keukenteam_get);
+            wachthond($extdebug,9, 'result_groupcontact_keukenteam_get',    $result_keukenteam_get);
+
+            $group_keukenteam_count         = $result_keukenteam_get->countMatched();
+            wachthond($extdebug,3, 'group_keukenteam_count',        $group_keukenteam_count);
+
+            if ($group_keukenteam_count == 1) {
+
+                $group_keukenteam_status    = $result_keukenteam_get[0]['status'] ?? NULL;
+                $group_keukenteam_label     = $result_keukenteam_get[0]['group_id:label'] ?? NULL;          
+                wachthond($extdebug,1, 'group_keukenteam_status',   $group_keukenteam_status);
+
+                if ($group_keukenteam_status == 'Added') {
+                    $group_keukenteam = 1;
+                    wachthond($extdebug,1, 'deel van ACL groep',    $group_keukenteam_label);
+                }
+            }
+        }
+
+        if (in_array($ditjaar_pos_leid_kampfunctie, array('hoofdkeuken', 'keukenteamlid')) AND $ditjaarleidyes == 1 AND $group_keukenteam_count == 0) {
+
+            wachthond($extdebug,2, "########################################################################");
+            wachthond($extdebug,1, "### ACL 2.4 b ADD TO ACL_KEUKENCHEF $ditjaar_pos_leid_kampkort OBV EVENTROL", "[EERST]");
+            wachthond($extdebug,2, "########################################################################");
+        
+            ##############################################################################################
+            # INDIEN MEE ALS KEUKENTEAM LID OF HOOFD KEUKEN VOEG DAN OOK TOE AAN DE ACL GROEP KEUKENTEAM DITJAAR VAN HUN KAMP
+            ##############################################################################################
+
+            $params_groupcontact_keukenteam_create = [
+                'checkPermissions' => FALSE,
+                'debug' => $apidebug,
+                'values' => [
+                    'group_id'      => $aclgroupkeukenteam,
+                    'contact_id'    => $contact_id,
+                    'status'        => 'Added',
+                ],
+            ];
+            wachthond($extdebug,7, 'params_groupcontact_keukenteam_create',         $params_groupcontact_keukenteam_create);
+            if ($extwrite == 1 AND $aclgroupkeukenteam) {
+                $result_keukenteam_create = civicrm_api4('GroupContact','create',   $params_groupcontact_keukenteam_create);
+                wachthond($extdebug,1, 'Toegevoegd aan ACL groep',  $group_keukenteam_label);
+            }
+        }
+
+        if (in_array($ditjaar_pos_leid_kampfunctie, array('hoofdkeuken', 'keukenteamlid')) AND $ditjaarleidyes == 1 AND $group_keukenteam_count == 1) {
+
+            wachthond($extdebug,2, "########################################################################");
+            wachthond($extdebug,1, "### ACL 2.4 c ADD TO ACL_KEUKENCHEF $ditjaar_pos_leid_kampkort OBV EVENTROL", "[OPNIEUW]");
+            wachthond($extdebug,2, "########################################################################");
+
+            $params_groupcontact_keukenteam_update = [
+                'checkPermissions' => FALSE,
+                'debug' => $apidebug,
+                'values' => [
+                    'status' => 'Added',
+                ],
+                'where' => [
+                    ['group_id',    '=', $aclgroupkeukenteam],
+                    ['contact_id',  '=', $contact_id],
+                ],
+            ];
+            wachthond($extdebug,7, 'params_groupcontact_keukenteam_update',       $params_groupcontact_keukenteam_update);
+            if ($extwrite == 1 AND $aclgroupkeukenteam) {
+                $result_keukenteam_update = civicrm_api4('GroupContact','update', $params_groupcontact_keukenteam_update);
+                wachthond($extdebug,1, 'Weer toegevoegd aan ACL groep', $group_keukenteam_label);
+            }
+        }
+
+        if ( !in_array($ditjaar_pos_leid_kampfunctie, array('hoofdkeuken', 'keukenteamlid')) OR $ditjaarleidnot == 1) {
+
+            wachthond($extdebug,2, "########################################################################");
+            wachthond($extdebug,1, "### ACL 2.4 d ADD TO ACL_KEUKENCHEF $ditjaar_pos_leid_kampkort OBV EVENTROL", "[VERWIJDER]");
+            wachthond($extdebug,2, "########################################################################");
+
+            $params_groupcontact_keukenteam_remove = [
+                'checkPermissions' => FALSE,
+                'debug' => $apidebug,
+                'values' => [
+                    'status' => 'Removed',
+                ],
+                'where' => [
+                    ['group_id',    '=', $aclgroupkeukenteam],
+                    ['contact_id',  '=', $contact_id],
+                ],
+            ];
+            wachthond($extdebug,7, 'params_groupcontact_keukenteam_remove',         $params_groupcontact_keukenteam_remove);
+            if ($extwrite == 1 AND $group_keukenteam == 1 AND $aclgroupkeukenteam) {
+                $result_keukenteam_remove = civicrm_api4('GroupContact', 'update',  $params_groupcontact_keukenteam_remove);
+                wachthond($extdebug,9, 'result_keukenteam_remove', $result_keukenteam_remove);
+                wachthond($extdebug,1, 'Verwijderd uit ACL groep', $group_keukenteam_label);
+            }
+        }
+
+        wachthond($extdebug,2, "########################################################################");
+        wachthond($extdebug,1, "### ACL 2.5 a ADD ALLE KEUKENTEAMLEDEN TO ALGEMENE GROEP ACL_KEUKENSTAF", "[CHECK]");
+        wachthond($extdebug,2, "########################################################################");
+
+        ### INDIEN MEE ALS KEUKENTEAM LID OF HOOFD KEUKEN VOEG DAN OOK TOE AAN GROEP KEUKENSTAF VAN DIT JAAR
+
+        $aclgroupkeukenstaf     = NULL;
+        $group_keukenstaf       = 0;
+
+        if (in_array($ditjaar_pos_leid_kampfunctie, array('hoofdkeuken', 'keukenteamlid'))) {
+            $aclgroupkeukenstaf = 1882;// ALGEMENE ACL GROEP VOOR ALLE KEUKENTEAMLEDEN
+
+            $params_groupcontact_keukenstaf_get = [
+                'checkPermissions' => FALSE,
+                'debug' => $apidebug,
+                'select' => [
+                    'row_count',
+                    'id', 
+                    'group_id', 
+                    'group_id:name',
+                    'group_id:label',
+                    'status',
+                ],
+                'where' => [
+                    ['group_id',    '=', $aclgroupkeukenstaf], // M61: hardcoded id of ACL group ditjaar_hoofdkeuken
+                    ['contact_id',  '=', $contact_id],
+                ],
+            ];
+
+            wachthond($extdebug,7, 'params_groupcontact_keukenstaf_get',    $params_groupcontact_keukenstaf_get);
+            $result_keukenstaf_get  = civicrm_api4('GroupContact', 'get',   $params_groupcontact_keukenstaf_get);
+            wachthond($extdebug,9, 'result_groupcontact_keukenstaf_get',    $result_keukenstaf_get);
+
+            $group_keukenstaf_count         = $result_keukenstaf_get->countMatched();
+            wachthond($extdebug,3, 'group_keukenstaf_count',        $group_keukenstaf_count);
+
+            if ($group_keukenstaf_count == 1) {
+
+                $group_keukenstaf_status    = $result_keukenstaf_get[0]['status'] ?? NULL;
+                $group_keukenstaf_label     = $result_keukenstaf_get[0]['group_id:label'] ?? NULL;          
+                wachthond($extdebug,1, 'group_keukenstaf_status',   $group_keukenstaf_status);
+
+                if ($group_keukenstaf_status == 'Added') {
+                    $group_keukenstaf = 1;
+                    wachthond($extdebug,1, 'deel van ACL groep',    $group_keukenstaf_label);
+                }
+            }
+        }
+
+        if (in_array($ditjaar_pos_leid_kampfunctie, array('hoofdkeuken', 'keukenteamlid')) AND $ditjaarleidyes == 1 AND $group_keukenstaf_count == 0) {
+
+            wachthond($extdebug,2, "########################################################################");
+            wachthond($extdebug,1, "### ACL 2.5 a ADD ALLE KEUKENTEAMLEDEN TO ALGEMENE GROEP ACL_KEUKENSTAF", "[EERST]");
+            wachthond($extdebug,2, "########################################################################");
+
+            $params_groupcontact_keukenstaf_create = [
+                'checkPermissions' => FALSE,
+                'debug' => $apidebug,
+                'values' => [
+                    'group_id'      => $aclgroupkeukenstaf,
+                    'contact_id'    => $contact_id,
+                    'status'        => 'Added',
+                ],
+            ];
+            wachthond($extdebug,7, 'params_groupcontact_keukenstaf_create',         $params_groupcontact_keukenstaf_create);
+            if ($extwrite == 1 AND $aclgroupkeukenstaf) {
+                $result_keukenstaf_create = civicrm_api4('GroupContact', 'create',  $params_groupcontact_keukenstaf_create);
+                wachthond($extdebug,9, 'result_keukenstaf_create', $result_keukenstaf_create);
+                wachthond($extdebug,1, 'Toegevoegd aan ACL groep',  $group_keukenstaf_label);
+            }
+        }
+
+        if (in_array($ditjaar_pos_leid_kampfunctie, array('hoofdkeuken', 'keukenteamlid')) AND $ditjaarleidyes == 1 AND $group_keukenstaf_count == 1) {
+
+            wachthond($extdebug,2, "########################################################################");
+            wachthond($extdebug,1, "### ACL 2.5 a ADD ALLE KEUKENTEAMLEDEN TO ALGEMENE GROEP ACL_KEUKENSTAF", "[OPNIEUW]");
+            wachthond($extdebug,2, "########################################################################");
+
+            $params_groupcontact_keukenstaf_update = [
+                'checkPermissions' => FALSE,
+                'debug' => $apidebug,
+                'values' => [
+                    'status' => 'Added',
+                ],
+                'where' => [
+                    ['group_id',    '=', $aclgroupkeukenstaf],
+                    ['contact_id',  '=', $contact_id],
+                ],
+            ];
+            wachthond($extdebug,7, 'params_groupcontact_keukenstaf_update',         $params_groupcontact_keukenstaf_update);
+            if ($extwrite == 1 AND $aclgroupkeukenstaf) {
+                $result_keukenstaf_update = civicrm_api4('GroupContact', 'update',  $params_groupcontact_keukenstaf_update);
+                wachthond($extdebug,9, 'result_keukenstaf_update', $result_keukenstaf_update);  
+                wachthond($extdebug,1, 'Weer toegevoegd aan ACL groep', $group_keukenstaf_label);
+            }
+        }
+
+        if (!in_array($ditjaar_pos_leid_kampfunctie, array('hoofdkeuken', 'keukenteamlid')) OR $ditjaarleidnot == 1) {
+
+            wachthond($extdebug,2, "########################################################################");
+            wachthond($extdebug,1, "### ACL 2.5 a ADD ALLE KEUKENTEAMLEDEN TO ALGEMENE GROEP ACL_KEUKENSTAF", "[VERWIJDER]");
+            wachthond($extdebug,2, "########################################################################");
+
+            $params_groupcontact_keukenstaf_remove = [
+                'checkPermissions' => FALSE,
+                'debug' => $apidebug,
+                'values' => [
+                    'status' => 'Removed',
+                ],
+                'where' => [
+                    ['group_id',    '=', $aclgroupkeukenstaf],
+                    ['contact_id',  '=', $contact_id],
+                ],
+            ];
+            wachthond($extdebug,7, 'params_groupcontact_keukenstaf_remove',         $params_groupcontact_keukenstaf_remove);
+            if ($extwrite == 1 AND $group_keukenstaf == 1 AND $aclgroupkeukenstaf) {
+                $result_keukenstaf_remove = civicrm_api4('GroupContact', 'update',  $params_groupcontact_keukenstaf_remove);
+                wachthond($extdebug,9, 'result_keukenstaf_remove', $result_keukenstaf_remove);              
+                wachthond($extdebug,1, 'Verwijderd uit ACL groep',  $group_keukenstaf_label);
+            }
+        }
+
+        wachthond($extdebug,2, "########################################################################");
+        wachthond($extdebug,1, "### ACL 2.6 a ADD ALLE KAMPLEIDERS TO ALGEMENE GROEP ACL_ALLELEIDING", "[CHECK]");
+        wachthond($extdebug,2, "########################################################################");
+
+        ### INDIEN MEE ALS KAMPLEIDING VOEG DAN OOK TOE AAN DE ACL GROEP KAMPLEIDING DITJAAR VAN HUN KAMP
+
+        if ($ditjaarleidyes == 1) { 
+            $aclgroupkampleiding = 1849;// ALGEMENE ACL GROEP ALLE LEIDING DIT JAAR
+        } else {
+            $aclgroupkampleiding = NULL;
+        }
+        $group_kampleiding = 0;
+
+        $params_groupcontact_kampleiding_get = [
+            'checkPermissions' => FALSE,
+            'debug' => $apidebug,               
+            'select' => [
+                'row_count',
+                'id', 
+                'group_id', 
+                'group_id:name',
+                'group_id:label',
+                'status',
+            ],
+            'where' => [
+                ['group_id',    '=', $aclgroupkampleiding], // M61: hardcoded id of ACL group ditjaar_hoofdkeuken
+                ['contact_id',  '=', $contact_id],
+            ],
+        ];
+        wachthond($extdebug,7, 'params_groupcontact_kampleiding_get', $params_groupcontact_kampleiding_get);
+        $result_kampleiding_get  = civicrm_api4('GroupContact','get', $params_groupcontact_kampleiding_get);
+        wachthond($extdebug,9, 'result_groupcontact_kampleiding_get', $result_kampleiding_get);
+
+        $group_kampleiding_count        = $result_kampleiding_get->countMatched();
+        wachthond($extdebug,3, 'group_kampleiding_count',   $group_kampleiding_count);
+
+        if ($group_kampleiding_count == 1) {
+
+            $group_kampleiding_status   = $result_kampleiding_get[0]['status'] ?? NULL;
+            $group_kampleiding_label    = $result_kampleiding_get[0]['group_id:label'] ?? NULL;         
+            wachthond($extdebug,1, 'group_kampleiding_status',  $group_kampleiding_status);
+
+            if ($group_kampleiding_status == 'Added') {
+                $group_kampleiding = 1;
+                wachthond($extdebug,1, 'deel van ACL groep',    $group_kampleiding_label);
+            }
+        }
+
+        if ($ditjaarleidyes == 1 AND $group_kampleiding_count == 0) {
+
+            wachthond($extdebug,2, "########################################################################");
+            wachthond($extdebug,1, "### ACL 2.6 b ADD ALLE KAMPLEIDERS TO ALGEMENE GROEP ACL_ALLELEIDING", "[EERST]");
+            wachthond($extdebug,2, "########################################################################");
+
+            $params_groupcontact_kampleiding_create = [
+                'checkPermissions' => FALSE,
+                'debug' => $apidebug,
+                'values' => [
+                    'group_id'      => $aclgroupkampleiding,
+                    'contact_id'    => $contact_id,
+                    'status'        => 'Added',
+                ],
+            ];
+            wachthond($extdebug,7, 'params_groupcontact_kampleiding_create',        $params_groupcontact_kampleiding_create);
+            if ($extwrite == 1 AND $aclgroupkampleiding) {
+                $result_kampleiding_create = civicrm_api4('GroupContact', 'create', $params_groupcontact_kampleiding_create);
+                wachthond($extdebug,1, 'Toegevoegd aan ACL groep',  $group_kampleiding_label);
+            }
+        }
+
+        if ($ditjaarleidyes == 1 AND $group_kampleiding_count == 1) {
+
+            wachthond($extdebug,2, "########################################################################");
+            wachthond($extdebug,1, "### ACL 2.6 b ADD ALLE KAMPLEIDERS TO ALGEMENE GROEP ACL_ALLELEIDING", "[OPNIEUW]");
+            wachthond($extdebug,2, "########################################################################");
+
+            $params_groupcontact_kampleiding_update = [
+                'checkPermissions' => FALSE,
+                'debug' => $apidebug,
+                'values' => [
+                    'status' => 'Added',
+                ],
+                'where' => [
+                    ['group_id',    '=', $aclgroupkampleiding],
+                    ['contact_id',  '=', $contact_id],
+                ],
+            ];
+            wachthond($extdebug,7, 'params_groupcontact_kampleiding_update',        $params_groupcontact_kampleiding_update);
+            if ($extwrite == 1 AND $aclgroupkampleiding) {
+                $result_kampleiding_update = civicrm_api4('GroupContact', 'update', $params_groupcontact_kampleiding_update);
+                wachthond($extdebug,1, 'Weer toegevoegd aan ACL groep', $group_kampleiding_label);
+            }
+        }
+
+        if ($ditjaarleidnot == 1 AND $group_kampleiding_count == 1) {
+
+            wachthond($extdebug,2, "########################################################################");
+            wachthond($extdebug,1, "### ACL 2.6 b ADD ALLE KAMPLEIDERS TO ALGEMENE GROEP ACL_ALLELEIDING", "[VERWIJDER]");
+            wachthond($extdebug,2, "########################################################################");
+
+            $params_groupcontact_kampleiding_remove = [
+                'checkPermissions' => FALSE,
+                'debug' => $apidebug,
+                'values' => [
+                    'status' => 'Removed',
+                ],
+                'where' => [
+                    ['group_id',    '=', $aclgroupkampleiding], 
+                    ['contact_id',  '=', $contact_id],
+                ],
+            ];
+            wachthond($extdebug,7, 'params_groupcontact_kampleiding_remove',        $params_groupcontact_kampleiding_remove);
+            if ($extwrite == 1 AND $aclgroupkampleiding) {
+                $result_kampleiding_remove = civicrm_api4('GroupContact', 'update', $params_groupcontact_kampleiding_remove);
+                wachthond($extdebug,1, 'Verwijderd uit ACL groep',  $group_kampleiding_label);
+            }
+        }
+
+        wachthond($extdebug,1, "########################################################################");
+        wachthond($extdebug,1, "### ACL 1.X EINDE SEGMENT LEIDING HUIDIG JAAR",    "[$ditjaar_pos_leid_kampfunctie $ditjaar_pos_leid_kampkort]");
+        wachthond($extdebug,1, "########################################################################");
+
+    } else {
+        wachthond($extdebug,1, "########################################################################");
+        wachthond($extdebug,1, "### ACL 1.X SKIPPED SEGMENT LEIDING HUIDIG JAAR",  "[$ditjaar_pos_leid_kampfunctie $ditjaar_pos_leid_kampkort]");
+        wachthond($extdebug,1, "########################################################################");        
+    } 
+
+    ###################################################################################################
+    wachthond($extdebug,1, "########################################################################");
+    wachthond($extdebug,1, "### ACL 3.X SEGMENT BESTUUR/HOOFDLEIDING/KAMPSTAF", "$displayname");
+    wachthond($extdebug,1, "########################################################################");
+    ###################################################################################################
+
+    ##########################################################################################
+    if ($ditjaarleidstf == 1) {
+    ##########################################################################################
+
+        wachthond($extdebug,1, "########################################################################");
+        wachthond($extdebug,1, "### ACL 3.1 a CHECK OP GROUP BESTUUR ACL", "[$ditjaar_pos_leid_kampfunctie $ditjaar_pos_leid_kampkort]");
+        wachthond($extdebug,1, "########################################################################");     
+
+        $aclgroupbestuur    = 455;  // M61: hardcoded id of (manual) ACL group ditjaar_bestuur
+        $group_bestuur      = 0;
+
+        $params_groupcontact_bestuur_get = [
+            'checkPermissions' => FALSE,
+            'debug' => $apidebug,               
+            'select' => [
+                'row_count',
+                'id', 
+                'group_id', 
+                'group_id:name',
+                'group_id:label',
+                'status',
+            ],
+            'where' => [
+                ['group_id',    '=', $aclgroupbestuur],
+                ['contact_id',  '=', $contact_id],
+            ],
+        ];
+
+        wachthond($extdebug,7, 'params_groupcontact_bestuur_get', $params_groupcontact_bestuur_get);
+        $result_bestuur_get = civicrm_api4('GroupContact', 'get', $params_groupcontact_bestuur_get);
+        wachthond($extdebug,9, 'result_groupcontact_bestuur_get', $result_bestuur_get);
+
+        $group_bestuur_count = $result_bestuur_get->countMatched();
+        wachthond($extdebug,3, 'group_bestuur_count',       $group_bestuur_count);
+
+        if ($group_bestuur_count == 1) {
+
+            $group_bestuur_status   = $result_bestuur_get[0]['status']          ?? NULL;
+            $group_bestuur_label    = $result_bestuur_get[0]['group_id:label']  ?? NULL;
+            wachthond($extdebug,1, 'group_bestuur_status',  $group_bestuur_status);
+
+            if ($group_bestuur_status == 'Added') {
+                $group_bestuur      = 1;
+                wachthond($extdebug,1, 'group_bestuur',         $group_bestuur);
+                wachthond($extdebug,1, 'deel van ACL groep',    $group_bestuur_label);
+
+                $ditjaarleidstf     = 1;
+                if ($ditjaarleidyes == 1) {
+                    $ditjaarleidstf = 1;
+                }
+            }
+        }
+    }
+
+    if (in_array($ditjaar_pos_leid_kampfunctie, array('hoofdleiding','kernteamlid','bestuurslid','kampstaf'))) {
+
+        wachthond($extdebug,2, "########################################################################");
+        wachthond($extdebug,1, "### ACL 3.X VOEG HL TOE AAN ACLGROEP KAMP", "[$ditjaar_pos_leid_kampfunctie $ditjaar_pos_leid_kampkort]");
+        wachthond($extdebug,2, "########################################################################");
+
+        // M61: INDIEN HANDMATIG TOEGEVOEGD AAN KAMPSTAF ACL
+
+        wachthond($extdebug,2, "########################################################################");
+        wachthond($extdebug,1, "### ACL 3.1 STAF & LEIDING DITKAMP? DAN OOK IN ACL_DITKAMP", "[CHECK STAF]");
+        wachthond($extdebug,2, "########################################################################");
+
+        $aclgroupkampstaf   = 456;  // M61: hardcoded id of (manual) ACL group DITJAAR KAMPSTAF ACL
+        $group_staf         = 0;
+
+        $params_groupcontact_staf_get = [
+            'checkPermissions' => FALSE,
+            'debug' => $apidebug,
+            'select' => [
+                'row_count',
+                'id', 
+                'group_id', 
+                'group_id:name',
+                'status',
+            ],
+            'where' => [
+                ['group_id',    '=', $aclgroupkampstaf],
+                ['contact_id',  '=', $contact_id],
+            ],
+        ];
+
+        wachthond($extdebug,7, 'params_groupcontact_staf_get', $params_groupcontact_staf_get);
+        $result_staf_get = civicrm_api4('GroupContact', 'get', $params_groupcontact_staf_get);
+        wachthond($extdebug,9, 'result_groupcontact_staf_get', $result_staf_get);
+
+        $group_staf_count     = $result_staf_get->countMatched();
+        wachthond($extdebug,3, 'group_staf_count',    $group_staf_count);
+
+        if ($group_staf_count == 1) {
+
+            $group_staf_status  = $result_staf_get[0]['status']         ?? NULL;
+            $group_staf_label   = $result_staf_get[0]['group_id:label'] ?? NULL;      
+            wachthond($extdebug,1, 'group_staf_status',   $group_staf_status);
+
+            if ($group_staf_status == 'Added') {
+                $group_staf = 1;
+                wachthond($extdebug,1, 'deel van ACL groep',$group_staf_label);
+            }
+        }
+
+        wachthond($extdebug,2, "########################################################################");
+        wachthond($extdebug,1, "### ACL 3.1 STAF & LEIDING DITKAMP? DAN OOK IN ACL_DITKAMP", "[CHECK KAMP]");
+        wachthond($extdebug,2, "########################################################################");
+
+        $aclgroupkamp = NULL;
+
+        if ($ditjaar_pos_leid_kampkort == 'bestuurstaken')  { $aclgroupkamp = 1862;}
+    //  if ($ditjaar_pos_leid_kampkort == 'kampstaf')       { $aclgroupkamp = 1862;}
+
+        wachthond($extdebug,1, 'ditjaar_pos_leid_kampkort', $ditjaar_pos_leid_kampkort);
+        wachthond($extdebug,1, 'aclgroupkamp',              $aclgroupkamp);
+
+        $group_kamp     = 0;
+
+        $params_groupcontact_kamp_get = [
+            'checkPermissions' => FALSE,
+            'debug' => $apidebug,       
+            'select' => [
+                'row_count',
+                'id', 
+                'group_id', 
+                'group_id:name',
+                'group_id:label',
+                'status',
+            ],
+            'where' => [
+                ['group_id',    '=', $aclgroupkamp], // M61: hardcoded id of ACL group Ditjaar_kampstaf
+                ['contact_id',  '=', $contact_id],
+            ],
+        ];
+
+        wachthond($extdebug,7, 'params_groupcontact_kamp_get',      $params_groupcontact_kamp_get);
+        $result_kamp_get    = civicrm_api4('GroupContact', 'get',   $params_groupcontact_kamp_get);
+        wachthond($extdebug,9, 'result_groupcontact_kamp_get',      $result_kamp_get);
+
+        $group_kamp_count     = $result_kamp_get->countMatched();
+        wachthond($extdebug,3, 'group_kamp_count',    $group_kamp_count);
+
+        if ($group_kamp_count == 1) {
+
+            $group_kamp_status  = $result_kamp_get[0]['status']         ?? NULL;
+            $group_kamp_label   = $result_kamp_get[0]['group_id:label'] ?? NULL;      
+            wachthond($extdebug,1, 'group_kamp_status',   $group_kamp_status);
+
+            if ($group_kamp_status == 'Added') {
+                $group_kamp = 1;
+                wachthond($extdebug,1, 'deel van ACL groep',$group_kamp_label);
+            }
+        }
+
+        if ($group_staf == 1 AND $group_kamp_count == 0 AND $ditjaarleidyes == 1 AND in_array($ditjaar_pos_leid_kampfunctie, array('hoofdleiding','kernteamlid','bestuurslid','kampstaf'))) {
+
+            wachthond($extdebug,2, "########################################################################");
+            wachthond($extdebug,1, "### ACL 3.2 STAF & LEIDING DITKAMP? DAN OOK IN ACL_DITKAMP", "[EERST]");
+            wachthond($extdebug,2, "########################################################################");
+
+            $ditjaarstafyes = 1;
+
+            $params_groupcontact_kamp_create = [
+                'checkPermissions' => FALSE,
+                'debug' => $apidebug,
+                'values' => [
+                    'group_id'    => $aclgroupkamp, 
+                    'contact_id'  => $contact_id,
+                    'status'    => 'Added',
+                ],
+            ];
+            wachthond($extdebug,3, 'params_groupcontact_kamp_create',                   $params_groupcontact_kamp_create);
+            if ($extwrite == 1 AND $aclgroupkamp) {
+                $result_groupcontact_kamp_create = civicrm_api4('GroupContact','create',$params_groupcontact_kamp_create);
+                wachthond($extdebug,9, 'result_groupcontact_kamp_create',               $result_groupcontact_kamp_create);
+                wachthond($extdebug,1, 'Toegevoegd aan ACL groep',  $group_kamp_label);
+            }
+        }
+
+        if ($group_staf == 1 AND $group_kamp_count == 1 AND $ditjaarleidyes == 1 AND in_array($ditjaar_pos_leid_kampfunctie, array('hoofdleiding','kernteamlid','bestuurslid','kampstaf'))) {
+
+            wachthond($extdebug,2, "########################################################################");
+            wachthond($extdebug,1, "### ACL 3.2 STAF & LEIDING DITKAMP? DAN OOK IN ACL_DITKAMP", "[OPNIEUW]");
+            wachthond($extdebug,2, "########################################################################");
+
+            $ditjaarstafyes = 1;
+
+            $params_groupcontact_kamp_update = [
+                'checkPermissions' => FALSE,
+                'debug' => $apidebug,
+                'values' => [
+                    'status' => 'Added',
+                ],
+                'where' => [
+                    ['group_id',  '=', $aclgroupkamp], 
+                    ['contact_id',  '=', $contact_id],
+                ],
+            ];
+            wachthond($extdebug,7, 'params_groupcontact_kamp_update',                   $params_groupcontact_kamp_update);
+            if ($extwrite == 1 AND $aclgroupkamp) {
+                $result_groupcontact_kamp_update = civicrm_api4('GroupContact','update',$params_groupcontact_kamp_update);
+                wachthond($extdebug,9, 'result_groupcontact_kamp_update',               $result_groupcontact_kamp_update);
+                wachthond($extdebug,1, 'Weer toegevoegd aan ACL groep', $group_kamp_label);
+            }
+        }
+
+        if ($group_staf == 0 AND $group_kamp == 1 AND (in_array($ditjaar_pos_leid_kampfunctie, array('hoofdleiding','kernteamlid','bestuurslid','kampstaf'))) OR $ditjaarleidnot == 1) {
+
+            wachthond($extdebug,2, "########################################################################");
+            wachthond($extdebug,1, "### ACL 3.2 STAF & LEIDING DITKAMP? DAN OOK IN ACL_DITKAMP", "[VERWIJDER]");
+            wachthond($extdebug,2, "########################################################################");
+
+            $ditjaarstafyes = 0;
+
+            $params_groupcontact_kamp_remove = [
+                'checkPermissions' => FALSE,
+                'debug' => $apidebug,
+                'values' => [
+                    'status' => 'Removed',
+                ],
+                'where' => [
+                    ['group_id',    '=', $aclgroupkamp], 
+                    ['contact_id',  '=', $contact_id],
+                ],
+            ];
+            wachthond($extdebug,7, 'params_groupcontact_kamp_remove',                   $params_groupcontact_kamp_remove);
+            if ($extwrite == 1 AND $aclgroupkamp) {
+                $result_groupcontact_kamp_remove = civicrm_api4('GroupContact','update',$params_groupcontact_kamp_remove);
+                wachthond($extdebug,9, 'result_groupcontact_kamp_remove',               $result_groupcontact_kamp_remove);
+                wachthond($extdebug,1, 'Verwijderd uit ACL groep',      $group_kamp_label);
+            }
+        }
+
+        wachthond($extdebug,2, "########################################################################");
+        wachthond($extdebug,1, "### ACL 3.5 VOEG HL TOE AAN GOOGLEGROEP KAMPSTAF", "[$ditjaar_pos_leid_kampfunctie $ditjaar_pos_leid_kampkort]");
+        wachthond($extdebug,2, "########################################################################");
+
+        if ($group_staf == 1 AND $group_kamp_count == 1 AND $ditjaarleidyes == 1 AND in_array($ditjaar_pos_leid_kampfunctie, array('hoofdleiding','kernteamlid','bestuurslid','kampstaf'))) {
+
+            $googlegroup_id         = "0147n2zr43f2y48"; // KAMPSTAF ACL
+            $googlegroup_batch[]    = "richard@m61.nl";
+
+            $params_googlegroup_subscribe = [
+                'group_id'      => $googlegroup_id,
+                'emails'        => $googlegroup_batch,
+                'role'          => 'MEMBER',
+            ];
+            try{
+                wachthond($extdebug,2, 'params_googlegroup_subscribe',                      $params_googlegroup_subscribe);
+                $result_googlegroup_subscribe = civicrm_api3('Googlegroups','subscribe',    $params_googlegroup_subscribe);
+                wachthond($extdebug,2, 'result_googlegroup_subscribe',                      $result_googlegroup_subscribe);
+            }
+            catch (CiviCRM_API3_Exception $e) {
+                // Handle error here.
+                $errorMessage = $e->getMessage();
+                $errorCode    = $e->getErrorCode();
+                $errorData    = $e->getExtraParams();
+                wachthond($extdebug,4, "ERRORCODE: $errorCode", $errorMessage);
+            }
+        }
+    }
+
+    if (in_array($ditjaar_pos_leid_kampfunctie, array('hoofdleiding','kernteamlid','bestuurslid','kampstaf'))) {
+
+        wachthond($extdebug,2, "########################################################################");
+        wachthond($extdebug,1, "### ACL 4.1 CHECK IF USER IS DEEL VAN ACL GROEP HOOFDLEIDING");
+        wachthond($extdebug,2, "########################################################################");
+
+        $ditjaarhoofdyes  = 0;
+        $aclgrouphoofd    = 1976;
+
+        $params_groupcontact_hoofd_get = [
+            'checkPermissions' => FALSE,
+            'debug' => $apidebug,       
+            'select' => [
+                'row_count',
+                'id', 
+                'group_id', 
+                'group_id:name',
+                'group_id:label',
+                'status',
+            ],
+            'where' => [
+                ['group_id',    '=', $aclgrouphoofd], // M61: hardcoded id of ACL group Ditjaar_kampstaf
+                ['contact_id',  '=', $contact_id],
+            ],
+        ];
+
+        wachthond($extdebug,7, 'params_groupcontact_hoofd_get',     $params_groupcontact_hoofd_get);
+        $result_hoofd_get   = civicrm_api4('GroupContact', 'get',   $params_groupcontact_hoofd_get);
+        wachthond($extdebug,9, 'result_groupcontact_hoofd_get',     $result_hoofd_get);
+
+        $group_hoofd_count    = $result_hoofd_get->countMatched();
+        wachthond($extdebug,3, 'group_hoofd_count',   $group_hoofd_count);
+
+        if ($group_hoofd_count == 1) {
+
+            $group_hoofd_status   = $result_hoofd_get[0]['status'] ?? NULL;
+            $group_hoofd_label    = $result_hoofd_get[0]['group_id:label'] ?? NULL;     
+            wachthond($extdebug,1, 'group_hoofd_status',  $group_hoofd_status);
+
+            if ($group_hoofd_status == 'Added' OR $group_hoofd_status == 'Removed') {
+                $group_hoofd = 1;
+                wachthond($extdebug,1, 'deel van ACL groep',$group_hoofd_label);
+            }
+        }
+
+        if ($group_staf == 1 AND $group_hoofd == 0 AND $ditjaarleidyes == 1 AND in_array($ditjaar_pos_leid_kampfunctie, array('hoofdleiding'))) {
+
+            wachthond($extdebug,2, "########################################################################");
+            wachthond($extdebug,1, "### ACL 4.2 INDIEN IN KAMPSTAF EN HOOFDLEIDING VOEG DAN OOK TOE AAN ACL GROEP HOOFDLEIDING");
+            wachthond($extdebug,2, "########################################################################");
+
+            $ditjaarhoofdyes = 1;
+
+            $params_groupcontact_hoofd_create = [
+                'checkPermissions' => FALSE,
+                'debug' => $apidebug,
+                'values' => [
+                    'group_id'    => $aclgrouphoofd, 
+                    'contact_id'  => $contact_id,
+                    'status'    => 'Added',
+                ],
+            ];
+            wachthond($extdebug,7, 'params_groupcontact_hoofd_create', $params_groupcontact_hoofd_create);
+            if ($extwrite == 1 AND $aclgrouphoofd) {
+                $result_groupcontact_hoofd_create = civicrm_api4('GroupContact', 'create', $params_groupcontact_hoofd_create);
+                wachthond($extdebug,9, 'result_groupcontact_hoofd_create', $result_groupcontact_hoofd_create);
+                wachthond($extdebug,1, 'Toegevoegd aan ACL groep',  $group_hoofd_label);
+
+                ####################################################
+                # CHANGE CORRESPONDING DRUPAL ROLE FOR USER
+                ####################################################
+                if ($valid_drupalid) {
+                    $rol_cms_hoofd    = "ditjaar_hoofdleiding";
+                    $drupal_role_change = drupal_role_change($valid_drupalid, $rol_cms_hoofd, 'ADD');
+                } else { 
+                    wachthond($extdebug,1, "GEEN WAARDE VOOR VALID DRUPALID", $valid_drupalid);
+                }
+                ####################################################
+            }
+        }
+
+        if ($group_staf == 1 AND $group_hoofd == 1 AND $ditjaarleidyes == 1 AND in_array($ditjaar_pos_leid_kampfunctie, array('hoofdleiding'))) {
+
+            wachthond($extdebug,2, "########################################################################");
+            wachthond($extdebug,1, "### ACL 4.3 INDIEN IN KAMPSTAF EN (WEER) HOOFDLEIDING VOEG DAN OOK TOE AAN ACL GROEP HOOFDLEIDING");
+            wachthond($extdebug,2, "########################################################################");
+
+            $ditjaarhoofdyes = 1;
+
+            $params_groupcontact_hoofd_update = [
+                'checkPermissions' => FALSE,
+                'debug' => $apidebug,
+                'values' => [
+                    'status' => 'Added',
+                ],
+                'where' => [
+                    ['group_id',  '=', $aclgrouphoofd], 
+                    ['contact_id',  '=', $contact_id],
+                ],
+            ];
+            wachthond($extdebug,7, 'params_groupcontact_hoofd_update', $params_groupcontact_hoofd_update);
+            if ($extwrite == 1 AND $aclgrouphoofd) {
+                $result_groupcontact_hoofd_update = civicrm_api4('GroupContact', 'update', $params_groupcontact_hoofd_update);
+                wachthond($extdebug,9, 'result_groupcontact_hoofd_update', $result_groupcontact_hoofd_update);
+                wachthond($extdebug,1, 'Weer toegevoegd aan ACL groep', $group_hoofd_label);
+
+                ####################################################
+                # CHANGE CORRESPONDING DRUPAL ROLE FOR USER
+                ####################################################
+                if ($valid_drupalid) {
+                      $rol_cms_hoofd    = "ditjaar_hoofdleiding";
+                      $drupal_role_change = drupal_role_change($valid_drupalid, $rol_cms_hoofd, 'ADD');
+                      wachthond($extdebug,1, 'Drupal role aangepast',       $drupal_role_change);
+                } else {
+                      wachthond($extdebug,1, "GEEN WAARDE VOOR VALID DRUPALID", $valid_drupalid);
+                }
+                ####################################################
+            }
+        }
+
+        if ($group_staf == 0 OR (!in_array($ditjaar_pos_leid_kampfunctie, array('hoofdleiding'))) OR $ditjaarleidnot == 1) {
+
+            wachthond($extdebug,2, "########################################################################");
+            wachthond($extdebug,1, "### ACL 4.4 INDIEN NIET IN KAMPSTAF EN GEEN HOOFDLEIDING VERWIJDER DAN OOK UIT ACL GROEP HOOFDLEIDING");
+            wachthond($extdebug,2, "########################################################################");
+
+            $ditjaarhoofdyes = 0;
+
+            $params_groupcontact_hoofd_remove = [
+                'checkPermissions' => FALSE,
+                'debug' => $apidebug,
+                'values' => [
+                    'status' => 'Removed',
+                ],
+                'where' => [
+                    ['group_id',  '=', $aclgrouphoofd], 
+                    ['contact_id',  '=', $contact_id],
+                ],
+            ];
+            wachthond($extdebug,7, 'params_groupcontact_hoofd_remove', $params_groupcontact_hoofd_remove);
+            if ($extwrite == 1 AND $aclgrouphoofd) {
+                $result_groupcontact_hoofd_remove = civicrm_api4('GroupContact', 'update', $params_groupcontact_hoofd_remove);
+                wachthond($extdebug,9, 'result_groupcontact_hoofd_remove',  $result_groupcontact_hoofd_remove);
+                wachthond($extdebug,1, 'Verwijderd uit ACL groep',      $group_hoofd_label);
+
+                ####################################################
+                # CHANGE CORRESPONDING DRUPAL ROLE FOR USER
+                ####################################################
+                $rol_cms_hoofd    = "ditjaar_hoofdleiding";
+                $drupal_role_change = drupal_role_change($valid_drupalid, $rol_cms_hoofd, 'REMOVE');
+                wachthond($extdebug,1, 'Drupal role aangepast',       $drupal_role_change);
+                ####################################################
+            }
+        }
+    }
+
+    if (in_array($ditjaar_pos_leid_kampfunctie, array('hoofdleiding','kernteamlid','bestuurslid','kampstaf'))) {
+
+        wachthond($extdebug,2, "########################################################################");
+        wachthond($extdebug,1, "### ACL 5.1 REGISTER HOOFDLEIDING VOOR FUTURE KAMPSTAF EVENTS", "$displayname ($ditjaar_pos_leid_kampfunctie)");
+        wachthond($extdebug,2, "########################################################################");
+
+        // M61: DISABLE FOR NOW (123)
+
+        if ($group_staf == 123 AND $group_kamp == 1 AND $ditjaarleidyes == 1 AND in_array($ditjaar_pos_leid_kampfunctie, array('hoofdleiding','bestuurslid','kampstaf'))) {
+
+            ##########################################################################################
+            # RETREIVE EVENT ID'S FROM CACHE
+            ##########################################################################################
+            $kampids_meet       = Civi::cache()->get('cache_kampids_meet');
+            wachthond($extdebug,3, 'kampids_meet',          $kampids_meet);     
+
+            # REGISTREER ALLEEN DE EVENT IDS DIE NOG NIET GEREGISTREERD ZIJN
+            $evtcv_meet_notregistered_array = array_diff($kampids_meet, $evtcv_meet_array);
+            arsort($evtcv_meet_notregistered_array); // sort by value (reverse)
+
+            wachthond($extdebug,1, "evtcv_meet_array",                  $evtcv_meet_array);
+            wachthond($extdebug,1, "kampids_meet",                      $kampids_meet);
+            wachthond($extdebug,1, "evtcv_meet_notregistered_array",    $evtcv_meet_notregistered_array);
+
+            wachthond($extdebug,1, "ditevent_part_functie",             $ditjaar_pos_leid_kampfunctie);
+            wachthond($extdebug,1, "group_staf",                        $group_staf);
+
+            if (in_array($ditjaar_pos_leid_kampfunctie, array('hoofdleiding','bestuurslid','kampstaf')) AND $group_staf == 1) {
+
+                // ALLEEN INDIEN HL & IN MANUAL ACL GROUP STAF
+
+                foreach ($evtcv_meet_notregistered_array as $kampstafeid) {
+                    $params_part_ditevent_create = [
+                        'checkPermissions' => FALSE,
+                        'debug' => $apidebug,
+                        'values' => [
+                            'contact_id'        => $contact_id,
+                            'event_id'          => $kampstafeid,
+                            'register_date'     => $today_datetime,
+                            'status_id'         => 24,  // initiele status: nog niet bekend   
+                            'role_id'           => [6], // rol = leiding
+                        ],
+                    ];
+                    wachthond($extdebug,7, 'params_participant_create',                       $params_part_ditevent_create);
+                    if ($regpast == 1 AND $kampstafeid > 0) {
+                        $result_participant_create = civicrm_api4('Participant','create',   $params_part_ditevent_create);
+                    }
+                    wachthond($extdebug,3, "Deze persoon geregistreerd kampstaf eventid", $kampstafeid);
+                    wachthond($extdebug,9, 'result_participant_create', $result_participant_create);
+                }
+            }
+        }
+
+        wachthond($extdebug,3, 'group_staf',      $group_staf);
+        wachthond($extdebug,3, 'group_kamp',      $group_kamp);
+        wachthond($extdebug,3, 'ditjaarleidyes', $ditjaarleidyes);
+        wachthond($extdebug,3, 'ditevent_part_functie', $ditjaar_pos_leid_kampfunctie);
+    }
+
+    if ($group_staf == 1 AND $group_kamp == 1 AND $ditjaarleidyes == 1 AND in_array($ditjaar_pos_leid_kampfunctie, array('hoofdleiding','kernteamlid','bestuurslid','kampstaf'))) {
+
+            wachthond($extdebug,2, "########################################################################");
+            wachthond($extdebug,1, "### ACL 6.1 VOEG HOOFDLEIDING EMAIL TOE AAN GROEP DIE KAMPSTAF EMAIL ONTVANGT", "$displayname ($ditjaar_pos_leid_kampfunctie)");
+            wachthond($extdebug,2, "########################################################################");
+            ##########################################################################################
+            // M61: BIJ 3.3 IS ALLES MET DEFAULT WAARDEN AANGEMAAKT. HIER WORDT ALLES AANGEPAST NAV VOORKEUREN
+            ##########################################################################################  
+        /*
+            ##########################################################################################  
+            // M61: FIRST DELETE EXISTING NOTIF EMAILS (BECAUSE DOUBLES WERE CREATED: THIS SHOULD NOT HAPPEN > TODO)
+            ##########################################################################################  
+
+            $result_email_notif_delete = civicrm_api4('Email', 'delete', [
+                'where' => [
+                    ['location_type_id', 'IN', [16, 17, 18, 19]],
+                    ['contact_id', '=', $contact_id],
+                  ],
+            ]);
+        */
+            wachthond($extdebug,3, 'email_home_id',   $email_home_id);
+            wachthond($extdebug,3, 'email_othr_id',   $email_othr_id);
+            wachthond($extdebug,3, 'email_priv_id',   $email_priv_id);
+            wachthond($extdebug,3, 'email_deel_id',   $notif_deel_id);
+            wachthond($extdebug,3, 'email_leid_id',   $notif_leid_id);
+            wachthond($extdebug,3, 'email_kamp_id',   $notif_kamp_id);
+            wachthond($extdebug,3, 'email_staf_id',   $notif_staf_id);
+
+            wachthond($extdebug,3, 'email_home_email',  $email_home_email);
+            wachthond($extdebug,3, 'email_othr_email',  $email_othr_email);
+            wachthond($extdebug,3, 'email_priv_email',  $email_priv_email);
+            wachthond($extdebug,3, 'notif_deel_email',  $notif_deel_email);
+            wachthond($extdebug,3, 'notif_leid_email',  $notif_leid_email);
+            wachthond($extdebug,3, 'notif_kamp_email',  $notif_kamp_email);
+            wachthond($extdebug,3, 'notif_staf_email',  $notif_staf_email);
+
+            wachthond($extdebug,3, 'cont_notificatie_deel',   $cont_notificatie_deel);
+            wachthond($extdebug,3, 'cont_notificatie_leid',   $cont_notificatie_leid);
+            wachthond($extdebug,3, 'cont_notificatie_kamp',   $cont_notificatie_kamp);
+            wachthond($extdebug,3, 'cont_notificatie_staf',   $cont_notificatie_staf);
+
+            wachthond($extdebug,3, 'part_notificatie_deel',   $ditevent_part_notificatie_deel);
+            wachthond($extdebug,3, 'part_notificatie_leid',   $ditevent_part_notificatie_leid);
+            wachthond($extdebug,3, 'part_notificatie_kamp',   $ditevent_part_notificatie_kamp);
+            wachthond($extdebug,3, 'part_notificatie_staf',   $ditevent_part_notificatie_staf);
+
+            if (!empty($cont_notificatie_deel) AND empty($ditevent_part_notificatie_deel))  { $ditevent_part_notificatie_deel=$cont_notificatie_deel; }
+            if (!empty($cont_notificatie_leid) AND empty($ditevent_part_notificatie_leid))  { $ditevent_part_notificatie_leid=$cont_notificatie_leid; }
+            if (!empty($cont_notificatie_kamp) AND empty($ditevent_part_notificatie_kamp))  { $ditevent_part_notificatie_kamp=$cont_notificatie_kamp; }
+            if (!empty($cont_notificatie_staf) AND empty($ditevent_part_notificatie_staf))  { $ditevent_part_notificatie_staf=$cont_notificatie_staf; }
+
+            if (empty($email_priv_email)) {
+                $email_priv_email = $email_home_email;
+            }
+
+            if ($ditevent_part_notificatie_deel == 'kampmail') {
+                $notif_deel_new     = NULL;             # ALLEEN IN DE MAILBOX VAN JOUW KAMP (SWS)
+            } elseif ($ditevent_part_notificatie_deel == 'kamppers') {
+                $notif_deel_new     = $email_onvr_email;      # OOK OP JOUW PERSOONLIJKE @ONVERGETELIJK
+            } elseif ($ditevent_part_notificatie_deel == 'privemail') {
+                $notif_deel_new     = $email_priv_email;      # OOK OP JE PRIVE EMAILADRES
+            } else {
+                $ditevent_part_notificatie_deel = 'privemail'; 
+                $notif_deel_new     = $email_priv_email;
+            }
+
+            if ($ditevent_part_notificatie_leid == 'kampmail') {
+                $notif_leid_new     = NULL;             # ALLEEN IN DE MAILBOX VAN JOUW KAMP (SWS)
+            } elseif ($ditevent_part_notificatie_leid == 'kamppers') {
+                $notif_leid_new     = $email_onvr_email;      # OOK OP JOUW PERSOONLIJKE @ONVERGETELIJK
+            } elseif ($ditevent_part_notificatie_leid == 'privemail') {
+                $notif_leid_new     = $email_priv_email;      # OOK OP JE PRIVE EMAILADRES
+            } else {
+                $ditevent_part_notificatie_leid = 'privemail'; 
+                $notif_leid_new     = $email_priv_email;
+            }
+
+            if ($ditevent_part_notificatie_kamp == 'kampmail') {
+                $notif_kamp_new     = NULL;             # ALLEEN IN DE MAILBOX VAN JOUW KAMP (SWS)
+            } elseif ($ditevent_part_notificatie_kamp == 'kamppers') {
+                $notif_kamp_new     = $email_onvr_email;      # OOK OP JOUW PERSOONLIJKE @ONVERGETELIJK
+            } elseif ($ditevent_part_notificatie_kamp == 'privemail') {
+                $notif_kamp_new     = $email_priv_email;      # OOK OP JE PRIVE EMAILADRES
+            } else {
+                $ditevent_part_notificatie_kamp = 'privemail'; 
+                $notif_kamp_new     = $email_priv_email;
+            }
+
+            if ($ditevent_part_notificatie_staf == 'kamppers') {
+                $notif_staf_new     = $email_onvr_email;      # OOK OP JOUW PERSOONLIJKE @ONVERGETELIJK
+            } elseif ($ditevent_part_notificatie_staf == 'privemail') {
+                $notif_staf_new     = $email_priv_email;      # OOK OP JE PRIVE EMAILADRES
+            } else {
+                $ditevent_part_notificatie_staf = 'privemail'; 
+                $notif_staf_new     = $email_priv_email;
+            }
+
+            ##########################################################################################  
+            // M61: CHANGE EMAIL_HOME OP BASIS VAN VOORKEUR NOTIF_STAR
+            ##########################################################################################  
+
+            if ($ditevent_part_notificatie_staf AND $notif_staf_new AND in_array($ditjaar_pos_leid_kampfunctie, array('hoofdleiding','kernteamlid'))) {
+
+                $new_email_home_email = $notif_staf_new; 
+
+                ### EMAIL UPDATE
+                if ($email_home_email != $new_email_home_email AND !empty($new_email_home_email)) {
+                    $params_email_home_update = [
+                        'checkPermissions' => FALSE,
+                        'debug' => $apidebug,
+                        'where' => [
+                            ['id',          '=', $email_home_id],
+                            ['contact_id',  '=', $contact_id],
+                        ],
+                        'values' => [
+                            'email'          =>  $new_email_home_email,
+                            'location_type_id:name'  =>  "Home",
+                            'is_primary'       =>  TRUE,
+                        ],
+                    ];
+                    wachthond($extdebug,7, 'params_email_home_update',        $params_email_home_update);
+                    if ($extwrite == 1 AND !in_array($privacy_voorkeuren, array("33","44"))) {
+                        $result_email_home_update = civicrm_api4('Email', 'update', $params_email_home_update);
+                    }
+                    wachthond($extdebug,9, 'result_email_home_update',  $result_email_home_update);
+                    wachthond($extdebug,2, 'email_home geupdated',    $new_email_home_email);
+                    }
+                }
+
+                ##########################################################################################
+
+                wachthond($extdebug,3, 'part_notificatie_deel',   $ditevent_part_notificatie_deel);
+                wachthond($extdebug,3, 'part_notificatie_leid',   $ditevent_part_notificatie_leid);
+                wachthond($extdebug,3, 'part_notificatie_kamp',   $ditevent_part_notificatie_kamp);
+                wachthond($extdebug,3, 'part_notificatie_staf',   $ditevent_part_notificatie_staf);
+
+                wachthond($extdebug,3, 'notif_deel_new',      $notif_deel_new);
+                wachthond($extdebug,3, 'notif_leid_new',      $notif_leid_new);
+                wachthond($extdebug,3, 'notif_kamp_new',      $notif_kamp_new);
+                wachthond($extdebug,3, 'notif_staf_new',      $notif_staf_new);
+
+                //      if ($notif_deel_id AND $notif_deel_email != $notif_deel_new) {
+                if ($notif_deel_id > 0) {
+                    //M61: Het lukt niet om bij een bestaand email-id het email adres zelf via api te wijzigen. 
+                    //M61: Wel via de explorer, niet hier in code. Dus daarom verwijderen en aanmaken
+                    $result_email_notif_deel_delete = civicrm_api4('Email', 'delete', [ 'where' => [ 
+                        ['location_type_id:label',  '=', 'notif_deel'],
+                        ['contact_id',        '=', $contact_id],
+                    ],
+                ]);
+                wachthond($extdebug,3, 'notif_deel verwijderd (tbv opnieuw aanmaken)', $notif_deel_email);
+                }
+
+                if ($ditevent_part_notificatie_deel AND $notif_deel_new AND in_array($ditjaar_pos_leid_kampfunctie, array('hoofdleiding','kernteamlid'))) {
+                    $params_email_notif_deel_create = [
+                        'checkPermissions' => FALSE,
+                        'debug' => $apidebug,
+                        'values' => [
+                            'location_type_id:name' => 'notif_deel', 
+                            'email'   => $notif_deel_new,
+                            'contact_id'=> $contact_id, 
+                            'is_primary'=> FALSE,
+                        ],
+                    ];
+                    wachthond($extdebug,7, 'params_email_notif_deel_create',        $params_email_notif_deel_create);
+                    if ($extwrite == 1 AND !in_array($privacy_voorkeuren, array("33","44"))) {
+                        $result_email_notif_deel_create = civicrm_api4('Email', 'create',   $params_email_notif_deel_create);
+                        wachthond($extdebug,9, 'result_email_notif_deel_create',      $result_email_notif_deel_create);
+                    }
+                    wachthond($extdebug,2, 'notif_deel aangemaakt voor', $notif_deel_new);
+                }
+
+                //      if ($notif_leid_id AND $notif_leid_email != $notif_leid_new) {
+                if ($notif_leid_id > 0) {
+                    $result_email_notif_leid_delete = civicrm_api4('Email', 'delete', [ 'where' => [ 
+                        ['location_type_id:label',  '=', 'notif_leid'],
+                        ['contact_id',              '=', $contact_id],
+                    ],
+                ]);
+                wachthond($extdebug,3, 'notif_leid verwijderd (tbv opnieuw aanmaken)', $notif_leid_email);
+                }
+                if ($ditevent_part_notificatie_leid AND $notif_leid_new AND in_array($ditjaar_pos_leid_kampfunctie, array('hoofdleiding','kernteamlid'))) {
+                    $params_email_notif_leid_create = [
+                        'checkPermissions' => FALSE,
+                        'debug' => $apidebug,
+                        'values' => [
+                            'location_type_id:name' => 'notif_leid', 
+                            'email'   => $notif_leid_new,
+                            'contact_id'=> $contact_id,
+                            'is_primary'=> FALSE,
+                        ],
+                    ];
+                    wachthond($extdebug,7, 'params_email_notif_leid_create',                $params_email_notif_leid_create);
+                    if ($extwrite == 1 AND !in_array($privacy_voorkeuren, array("33","44"))) {
+                        $result_email_notif_leid_create = civicrm_api4('Email', 'create',   $params_email_notif_leid_create);
+                        wachthond($extdebug,9, 'result_email_notif_leid_create',            $result_email_notif_leid_create);
+                    }
+                    wachthond($extdebug,2, 'notif_leid aangemaakt voor', $notif_leid_new);
+                }
+
+                //      if ($notif_kamp_id AND $notif_kamp_email != $notif_kamp_new) {
+                if ($notif_kamp_id > 0) {
+                    $result_email_notif_kamp_delete = civicrm_api4('Email', 'delete', [ 
+                    'where' => [ 
+                        ['location_type_id:label',  '=', 'notif_kamp'],
+                        ['contact_id',        '=', $contact_id],
+                    ],
+                ]);
+                wachthond($extdebug,3, 'notif_kamp verwijderd (tbv opnieuw aanmaken)', $notif_kamp_email);
+                }
+
+                if ($ditevent_part_notificatie_kamp AND $notif_kamp_new AND in_array($ditjaar_pos_leid_kampfunctie, array('hoofdleiding','kernteamlid'))) {
+                    $params_email_notif_kamp_create = [
+                        'checkPermissions' => FALSE,
+                        'debug' => $apidebug,
+                        'values' => [
+                            'location_type_id:name' => 'notif_kamp', 
+                            'email'   => $notif_kamp_new,
+                            'contact_id'=> $contact_id, 
+                            'is_primary'=> FALSE,
+                        ],
+                    ];
+                    wachthond($extdebug,7, 'params_email_notif_kamp_create',                $params_email_notif_kamp_create);
+                    if ($extwrite == 1 AND !in_array($privacy_voorkeuren, array("33","44"))) {
+                        $result_email_notif_kamp_create = civicrm_api4('Email', 'create',   $params_email_notif_kamp_create);
+                    wachthond($extdebug,9, 'result_email_notif_kamp_create',               $result_email_notif_kamp_create);         
+                    }
+                    wachthond($extdebug,2, 'notif_kamp aangemaakt voor', $notif_kamp_new);
+                }
+
+                if ($notif_staf_id > 0) {
+                $result_email_notif_staf_delete = civicrm_api4('Email', 'delete', [ 
+                  'where' => [
+                    ['location_type_id:label',  '=', 'notif_staf'],
+                    ['contact_id',        '=', $contact_id],
+                  ],
+                ]);
+                wachthond($extdebug,3, 'notif_staf verwijderd (tbv opnieuw aanmaken)', $notif_staf_email);
+                }
+                if ($ditevent_part_notificatie_staf AND $notif_staf_new AND in_array($ditjaar_pos_leid_kampfunctie, array('hoofdleiding','kernteamlid'))) {
+                    $params_email_notif_staf_create = [
+                        'checkPermissions' => FALSE,
+                        'debug' => $apidebug, 
+                        'values' => [
+                            'location_type_id:name' => 'notif_staf', 
+                            'email'   => $notif_staf_new,
+                            'contact_id'=> $contact_id, 
+                            'is_primary'=> FALSE,
+                        ],
+                    ];
+                    wachthond($extdebug,7, 'params_email_notif_staf_create',        $params_email_notif_staf_create);
+                    if ($extwrite == 1 AND !in_array($privacy_voorkeuren, array("33","44"))) {
+                        $result_email_notif_staf_create = civicrm_api4('Email', 'create',   $params_email_notif_staf_create);
+                        wachthond($extdebug,9, 'result_email_notif_staf_create',      $result_email_notif_staf_create);
+                    }
+                    wachthond($extdebug,2, 'notif_staf aangemaakt voor', $notif_staf_new);
+                }
+
+                //M61: URGENT TODO Dit zou eigenlijk mee moeten met de parameters params_part maar lijkt op die manier niet te updaten
+                if (in_array($ditjaar_pos_leid_kampfunctie, array('hoofdleiding','kernteamlid'))) {
+                    $params_part_notif = [
+                        'checkPermissions'  => FALSE,
+                        'debug' => $apidebug,         
+                        'reload'      => TRUE,
+                        'where' => [
+                            ['id',  '=', $ditevent_part_id],
+                        ],
+                        'values' => [
+                            'PART_LEID_HOOFD.notificatie_deel' => $ditevent_part_notificatie_deel, 
+                            'PART_LEID_HOOFD.notificatie_leid' => $ditevent_part_notificatie_leid, 
+                            'PART_LEID_HOOFD.notificatie_kamp' => $ditevent_part_notificatie_kamp, 
+                            'PART_LEID_HOOFD.notificatie_staf' => $ditevent_part_notificatie_staf,
+                        ],
+                    ];
+                    if ($ditevent_part_id) {
+                        wachthond($extdebug,7, 'params_part_notif', $params_part_notif);
+                        // M61: TODO staat hier gedisabled: is hij verderop wel enabled? 
+                        #$result_part_notif = civicrm_api4('Participant', 'update', $params_part_notif);
+                        wachthond($extdebug,9, 'result_part_notif', $result_part_notif);
+                    }
+                }
+    }
+
+    ###################################################################################################
+    wachthond($extdebug,1, "########################################################################");
+    wachthond($extdebug,1, "### ACL - EINDE ACL CHECK VOOR $displayname $ditjaar_pos_kampfunctie $ditjaar_pos_kampkort", "[cid: $contact_id]");
+    wachthond($extdebug,1, "########################################################################");     
+    ###################################################################################################
+
+}
+
+function acl_remove_from_group($contactid, $group_array, $group_label) {
+
+    $extdebug = 3;          // 1 = basic // 2 = verbose // 3 = params / 4 = results
+    $apidebug = FALSE;
+    $extwrite = 1;
+
+    $contact_id     = $contactid;
+    $group_array    = $group_array;
+    $group_label    = $group_label;
+
+    if ($contact_id AND $group_array) {
+
+        wachthond($extdebug,3, "########################################################################");
+        wachthond($extdebug,3, "### ACL - VERWIJDER CID $contact_id UIT GROEPEN $group_label",  $group_array);
+        wachthond($extdebug,3, "########################################################################");
+
+        $params_groupcontact_remove = [
+            'checkPermissions' => FALSE,
+            'debug' => $apidebug,
+             'values' => [
+                'status' => 'Removed',
+            ],
+            'where' => [
+                ['group_id',    'IN',   $group_array], 
+                ['contact_id',  '=',    $contact_id],
+            ],
+        ];
+        wachthond($extdebug,5, 'params_groupcontact_remove',        $params_groupcontact_remove);
+        if ($extwrite == 1 AND $group_array) {
+            $result_remove = civicrm_api4('GroupContact','update',  $params_groupcontact_remove);
+            wachthond($extdebug,1, 'Verwijderd uit ACL groep',      $group_label);
+        }
+    }
+
+}
