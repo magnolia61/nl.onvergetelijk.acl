@@ -7,8 +7,12 @@ use CRM_Acl_ExtensionUtil as E;
 /**
  * Implements hook_civicrm_config().
  */
-function acl_civicrm_config(&$config): void {
-  _acl_civix_civicrm_config($config);
+function acl_civicrm_config(&$config) {
+  $extRoot = dirname(__FILE__) . DIRECTORY_SEPARATOR;
+  
+  // Voeg de map van je extensie toe aan het PHP include pad
+  $include_path = $extRoot . PATH_SEPARATOR . get_include_path();
+  set_include_path($include_path);
 }
 
 /**
@@ -81,7 +85,7 @@ function acl_group_sync($contact_id, $target_group_id, $all_possible_groups, $la
  */
 function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_array = NULL, $allpart_array = NULL, $drupal_id = NULL, $eventrollen_array = NULL) {
 
-    $extdebug       = 0; 
+    $extdebug       = 3; 
     $apidebug       = FALSE;
     $extwrite       = 1; 
     $regpast        = 1;
@@ -434,6 +438,26 @@ function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_
     // CMS Rol: Ooit Leiding
     if ($curcv_keer_leid > 0) cms_rol_add($drupal_id, $displayname, 'ooit_leiding');
     else cms_rol_remove($drupal_id, $displayname, 'ooit_leiding');
+
+    wachthond($extdebug,2, "########################################################################");
+    wachthond($extdebug,1, "### ACL 5.1 DIT JAAR ALGEMENE GROEPEN (DITJAARDEEL)");
+    wachthond($extdebug,2, "########################################################################");
+
+    // 1. Definieer de instellingen voor deze groep/rol
+    $acl_ditjaardeel = [
+        'aclgroup'        => $gid_ditjaardeel,    // Groep 1846
+        'cmsrol'          => 'ditjaar_deelnemer', // Drupal rol naam
+        'acl_group_label' => 'ditjaardeel'        // Label voor de logboeken
+    ];
+
+    // 2. Uitvoering op basis van de status 'ditjaardeelyes'
+    if ($ditjaardeelyes == 1) {
+        // Voeg toe aan CiviCRM én Drupal
+        permissions_add($contact_id, $drupal_id, $displayname, $acl_ditjaardeel);
+    } else {
+        // Niet (meer) mee dit jaar? Dan netjes opruimen
+        permissions_rem($contact_id, $drupal_id, $displayname, $acl_ditjaardeel);
+    }
 
     wachthond($extdebug,2, "########################################################################");
     wachthond($extdebug,1, "### ACL 6.0 DIT JAAR ALGEMENE GROEPEN (ALLE LEIDING / GL)");
@@ -1330,4 +1354,56 @@ function acl_helper_get_takenrollen_matrix($contact_id) {
     }
     
     return $takenrollen_matrix;
+}
+
+/**
+ * Implements hook_civicrm_summaryActions().
+ */
+function acl_civicrm_summaryActions(&$actions, $contactID) {
+  $actions['otherActions']['aclsync'] = [
+    'title'  => 'Sync ACL & rollen',
+    'weight' => 999,
+    'ref'    => 'crm-contact-acl-sync',
+    'key'    => 'aclsync',
+    // We gebruiken de normale URL met onze eigen trigger
+    'href'   => CRM_Utils_System::url('civicrm/contact/view', [
+      'reset' => 1,
+      'cid'   => $contactID,
+      'run_acl_sync' => 1, 
+    ]),
+    'class'  => 'no-popup',
+  ];
+}
+
+/**
+ * Implements hook_civicrm_pageRun().
+ */
+function acl_civicrm_pageRun(&$page) {
+  // Alleen uitvoeren als onze trigger in de URL staat
+  if (CRM_Utils_Request::retrieve('run_acl_sync', 'Int') === 1) {
+    $contact_id = CRM_Utils_Request::retrieve('cid', 'Positive');
+    
+    if ($contact_id) {
+      if (function_exists('acl_civicrm_configure')) {
+        acl_civicrm_configure($contact_id);
+      }
+      CRM_Core_Session::setStatus("ACL Sync voor contact ID $contact_id voltooid.", "Klaar", "success");
+      
+      // Belangrijk: direct herladen naar de schone URL zonder trigger
+      CRM_Utils_System::redirect(CRM_Utils_System::url('civicrm/contact/view', "reset=1&cid=$contact_id"));
+    }
+  }
+}
+
+/**
+ * Implements hook_civicrm_searchTasks().
+ */
+function acl_civicrm_searchTasks($objectType, &$tasks) {
+  if ($objectType === 'contact') {
+    $tasks[] = [
+      'title'  => '🔄 ACL & Rollen herberekenen (Bulk)',
+      'class'  => 'CRM_Acl_Form_Task_BulkSync',
+      'result' => FALSE,
+    ];
+  }
 }
