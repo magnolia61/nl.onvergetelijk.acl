@@ -85,7 +85,7 @@ function acl_group_sync($contact_id, $target_group_id, $all_possible_groups, $la
  */
 function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_array = NULL, $allpart_array = NULL, $drupal_id = NULL, $eventrollen_array = NULL) {
 
-    $extdebug       = 3; 
+    $extdebug       = 0; 
     $apidebug       = FALSE;
     $extwrite       = 1; 
     $regpast        = 1;
