@@ -1,6 +1,30 @@
 <?php
 
+// === FUNCTIE-INDEX ===
+// Bestand: acl.php
+// Functies in dit bestand:
+//   acl_civicrm_config()                 Implements hook_civicrm_config().
+//   acl_civicrm_install()                Implements hook_civicrm_install().
+//   acl_civicrm_enable()                 Implements hook_civicrm_enable().
+//   acl_civicrm_custom()
+//   acl_group_sync()                     HELPER: SMART SYNC
+//   acl_civicrm_configure()              HOOFDFUNCTIE: ACL CONFIGURATIE
+//   acl_group_remove()                   HELPER: GROUP REMOVE (MET HISTORIE BEHOUD)
+//   acl_group_update()
+//   acl_group_create()
+//   cms_rol_check()
+//   cms_rol_add()
+//   cms_rol_remove()
+//   permissions_add()                    HELPER: PERMISSIONS ADD (ROBUUSTE VERSIE)
+//   permissions_rem()                    HELPER: PERMISSIONS REMOVE (MET HISTORIE BEHOUD)
+//   acl_helper_get_takenrollen_matrix()  HELPER: MATRIX (MET NIEUWE KEYS)
+//   acl_civicrm_summaryActions()         Implements hook_civicrm_summaryActions().
+//   acl_civicrm_pageRun()                Implements hook_civicrm_pageRun().
+//   acl_civicrm_searchTasks()            Implements hook_civicrm_searchTasks().
+// === EINDE FUNCTIE-INDEX ===
+
 require_once 'acl.civix.php';
+require_once 'acl.helpers.php';
 
 use CRM_Acl_ExtensionUtil as E;
 
@@ -8,25 +32,25 @@ use CRM_Acl_ExtensionUtil as E;
  * Implements hook_civicrm_config().
  */
 function acl_civicrm_config(&$config) {
-  $extRoot = dirname(__FILE__) . DIRECTORY_SEPARATOR;
-  
-  // Voeg de map van je extensie toe aan het PHP include pad
-  $include_path = $extRoot . PATH_SEPARATOR . get_include_path();
-  set_include_path($include_path);
+    $extRoot        = dirname(__FILE__) . DIRECTORY_SEPARATOR;
+    
+    // Voeg de map van je extensie toe aan het PHP include pad
+    $include_path   = $extRoot . PATH_SEPARATOR . get_include_path();
+    set_include_path($include_path);
 }
 
 /**
  * Implements hook_civicrm_install().
  */
 function acl_civicrm_install(): void {
-  _acl_civix_civicrm_install();
+    _acl_civix_civicrm_install();
 }
 
 /**
  * Implements hook_civicrm_enable().
  */
 function acl_civicrm_enable(): void {
-  _acl_civix_civicrm_enable();
+    _acl_civix_civicrm_enable();
 }
 
 /*
@@ -53,8 +77,8 @@ function acl_group_sync($contact_id, $target_group_id, $all_possible_groups, $la
     foreach ($all_possible_groups as $group_id) {
         
         // 1. Check HUIDIGE status (Lezen is goedkoop via de statische cache)
-        $status_info = acl_group_get($contact_id, $group_id, $label_prefix);
-        $is_member_now = $status_info['group_member']; 
+        $status_info    = acl_group_get($contact_id, $group_id, $label_prefix);
+        $is_member_now  = $status_info['group_member']; 
 
         // 2. Bepaal de ACTIE (Vergelijken Huidig vs Gewenst)
         if ($group_id == $target_group_id) {
@@ -85,7 +109,7 @@ function acl_group_sync($contact_id, $target_group_id, $all_possible_groups, $la
  */
 function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_array = NULL, $allpart_array = NULL, $drupal_id = NULL, $eventrollen_array = NULL) {
 
-    $extdebug       = 3; 
+    $extdebug       = 0; 
     $apidebug       = FALSE;
     $extwrite       = 1; 
     $regpast        = 1;
@@ -99,17 +123,15 @@ function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_
     wachthond($extdebug,1, "### ACL 1.0 INPUT NORMALISATIE & DATA OPHALEN");
     wachthond($extdebug,2, "########################################################################");
 
-    // -------------------------------------------------------------------------
-    // 0. INPUT NORMALISATIE & DATA OPHALEN
-    // -------------------------------------------------------------------------
-
     // Veiligheidscheck: Hebben we een bruikbaar ID?
     if (!is_numeric($contact_id) || $contact_id <= 0) {
         wachthond($extdebug, 1, "ACL ABORT: Geen geldig Contact ID ($contact_id)");
         return;
     }
 
-    // STAP 1: CONTACT DATA (Basisgegevens uit CiviCRM)
+    wachthond($extdebug,2, "########################################################################");
+    wachthond($extdebug,1, "### ACL 1.1 CONTACT DATA (Basisgegevens uit CiviCRM)");
+    wachthond($extdebug,2, "########################################################################");
     if (empty($array_contditjaar)) {
         if (function_exists('base_cid2cont')) {
             $array_contditjaar = base_cid2cont($contact_id);
@@ -126,7 +148,9 @@ function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_
         wachthond($extdebug, 3, ">> CONTACT DATA: Was al gevuld voor CID: $contact_id");
     }
 
-    // STAP 2: ALLPART (Alle inschrijvingen voor dit jaar/periode)
+    wachthond($extdebug,2, "########################################################################");
+    wachthond($extdebug,1, "### ACL 1.2 ALLPART DATA (Alle inschrijvingen voor dit jaar)");
+    wachthond($extdebug,2, "########################################################################");
     if (empty($allpart_array)) {
         if (function_exists('base_find_allpart')) {
             $allpart_array = base_find_allpart($contact_id, $today_datetime);
@@ -142,10 +166,12 @@ function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_
         wachthond($extdebug, 3, ">> ALLPART DATA: Was al gevuld.");
     }
 
-    // STAP 3: PID BEPALEN (Deelnemer ID)
+    wachthond($extdebug,2, "########################################################################");
+    wachthond($extdebug,1, "### ACL 1.3 PID BEPALEN (Deelnemer ID)");
+    wachthond($extdebug,2, "########################################################################");
     $calculated_pid = NULL;
     if (!empty($allpart_array)) {
-        $calculated_pid = $allpart_array['result_allpart_pos_part_id'] 
+        $calculated_pid = $allpart_array['result_allpart_pos_part_id']  
             ?? $allpart_array['result_allpart_pen_part_id']
             ?? $allpart_array['result_allpart_wait_part_id']
             ?? $allpart_array['result_allpart_one_part_id']
@@ -160,26 +186,28 @@ function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_
         wachthond($extdebug, 2, "ACL PID: Kan geen PID bepalen omdat allpart_array volledig leeg is.");
     }
 
-    // STAP 4: STATUS FLAGS ($ditjaar_array) - Bepaalt of iemand leiding is
+    wachthond($extdebug,2, "########################################################################");
+    wachthond($extdebug,1, "### ACL 1.4 STATUS FLAGS (Bepaalt of iemand leiding is)");
+    wachthond($extdebug,2, "########################################################################");
     if (empty($ditjaar_array)) {
         
         // Poging 1: Via MEE module (De hoofd-logica)
         if (function_exists('mee_civicrm_configure')) {
-            $part_details = ($calculated_pid && function_exists('base_pid2part')) ? base_pid2part($calculated_pid) : NULL;
+            $part_details   = ($calculated_pid && function_exists('base_pid2part')) ? base_pid2part($calculated_pid) : NULL;
             
             if ($calculated_pid && !$part_details) {
                 wachthond($extdebug, 2, "ACL MEE: PID $calculated_pid gevonden, maar base_pid2part gaf geen details terug.");
             }
 
-            $status_config = function_exists('find_partstatus') ? find_partstatus() : NULL;        
+            $status_config  = function_exists('find_partstatus') ? find_partstatus() : NULL;        
             
             wachthond($extdebug, 3, ">> MEE MODULE START: Berekenen status voor CID $contact_id (PID: " . ($calculated_pid ?? 'GEEN') . ")");
-            $ditjaar_array = mee_civicrm_configure($contact_id, $allpart_array, $part_details, $status_config, NULL);
+            $ditjaar_array  = mee_civicrm_configure($contact_id, $allpart_array, $part_details, $status_config, NULL);
             
             if (empty($ditjaar_array)) {
                 wachthond($extdebug, 2, "ACL MEE RESULTAAT: MEE module gaf een lege array terug.");
             } else {
-                $l_yes = $ditjaar_array['ditjaarleidyes'] ?? 0;
+                $l_yes      = $ditjaar_array['ditjaarleidyes'] ?? 0;
                 wachthond($extdebug, 3, ">> MEE MODULE GELUKT: [LeidYes: $l_yes]");
             }
         } else {
@@ -196,7 +224,7 @@ function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_
                 $count_deel_pos = $allpart_array['result_allpart_pos_deel_count'] ?? 0;
                 $count_neg      = $allpart_array['result_allpart_neg_count']      ?? 0;
 
-                $ditjaar_array = [
+                $ditjaar_array  = [
                     'ditjaarleidyes' => ($count_leid_pos > 0) ? 1 : 0,
                     'ditjaardeelyes' => ($count_deel_pos > 0) ? 1 : 0,
                     'ditjaarleidnot' => ($count_leid_pos == 0 && $count_neg > 0) ? 1 : 0,
@@ -210,7 +238,9 @@ function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_
         wachthond($extdebug, 3, ">> STATUS DATA: \$ditjaar_array was reeds gevuld.");
     }
 
-    // STAP 5: MATRIX DATA (Event Rollen uit Evenementen-matrix)
+    wachthond($extdebug,2, "########################################################################");
+    wachthond($extdebug,1, "### ACL 1.5 MATRIX DATA (Event Rollen uit Evenementen-matrix)");
+    wachthond($extdebug,2, "########################################################################");
     if (empty($eventrollen_array)) {
         if (function_exists('acl_helper_get_takenrollen_matrix')) {
             $eventrollen_array = acl_helper_get_takenrollen_matrix($contact_id);
@@ -226,12 +256,26 @@ function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_
         wachthond($extdebug, 3, ">> MATRIX DATA: Was al gevuld.");
     }
 
-    // STAP 6: DRUPAL ID (Voor website permissies)
+    wachthond($extdebug,2, "########################################################################");
+    wachthond($extdebug,1, "### ACL 1.6 DRUPAL ID (Voor website permissies)");
+    wachthond($extdebug,2, "########################################################################");
+
     if (empty($drupal_id)) {
         try {
-            $uf_match = civicrm_api3('UFMatch', 'get', ['contact_id' => $contact_id])['values'];
+            $params_uf_get = [
+                'checkPermissions'  => FALSE,
+                'select'            => [
+                    'uf_id',
+                ],
+                'where'             => [
+                    ['contact_id', '=', $contact_id],
+                ],
+                'limit'             => 1,
+            ];
+            $uf_match = civicrm_api4('UFMatch', 'get', $params_uf_get)->first();
+            
             if (!empty($uf_match)) {
-                $drupal_id = $uf_match[0]['uf_id'];
+                $drupal_id = $uf_match['uf_id'];
                 wachthond($extdebug, 3, ">> DRUPAL ID GEVONDEN: $drupal_id");
             } else {
                 wachthond($extdebug, 2, "ACL DRUPAL: Geen UFMatch gevonden voor CID $contact_id (Geen Drupal account).");
@@ -243,68 +287,67 @@ function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_
         wachthond($extdebug, 3, ">> DRUPAL ID: Was al gevuld ($drupal_id)");
     }
 
-    wachthond($extdebug,2, 'array_contditjaar', $array_contditjaar);
-    wachthond($extdebug,2, 'allpart_array',     $allpart_array);
-    wachthond($extdebug,2, 'ditjaar_array',     $ditjaar_array);
+    wachthond($extdebug,2, 'array_contditjaar',             $array_contditjaar);
+    wachthond($extdebug,2, 'allpart_array',                 $allpart_array);
+    wachthond($extdebug,2, 'ditjaar_array',                 $ditjaar_array);
 
     wachthond($extdebug,2, "########################################################################");
-    wachthond($extdebug,1, "### ACL 1.1 VARIABELEN UITPAKKEN");
+    wachthond($extdebug,1, "### ACL 2.0 VARIABELEN UITPAKKEN");
     wachthond($extdebug,2, "########################################################################");
 
-    $contact_id               = $array_contditjaar['contact_id']            ?? $contact_id; // Fallback naar arg
-    $displayname              = $array_contditjaar['displayname']           ?? NULL;
-    $laatste_keer             = $array_contditjaar['laatstekeer']           ?? NULL;
-    $curcv_keer_deel          = $array_contditjaar['curcv_keer_deel']       ?? NULL;
-    $curcv_keer_leid          = $array_contditjaar['curcv_keer_leid']       ?? NULL;
-    $datum_belangstelling     = $array_contditjaar['datum_belangstelling']  ?? NULL;
+    $contact_id                     = $array_contditjaar['contact_id']                      ?? $contact_id; // Fallback naar arg
+    $displayname                    = $array_contditjaar['displayname']                     ?? NULL;
+    $laatste_keer                   = $array_contditjaar['laatstekeer']                     ?? NULL;
+    $curcv_keer_deel                = $array_contditjaar['curcv_keer_deel']                 ?? NULL;
+    $curcv_keer_leid                = $array_contditjaar['curcv_keer_leid']                 ?? NULL;
+    $datum_belangstelling           = $array_contditjaar['datum_belangstelling']            ?? NULL;
 
-    $email_onvr_email         = $array_contditjaar['email_onvr_email']      ?? NULL;
-    $email_home_email         = $array_contditjaar['email_home_email']      ?? NULL;
-    $email_priv_email         = (!empty($array_contditjaar['email_priv_email'])) ? $array_contditjaar['email_priv_email'] : $email_home_email;
-    $privacy_voorkeuren       = $array_contditjaar['privacy_voorkeuren']    ?? NULL;
-
-    // Haal posities op uit de array
-    $ditjaar_pos_kampfunctie  = $allpart_array['result_allpart_pos_kampfunctie']    ?? '';
-    $ditjaar_pos_kampkort     = $allpart_array['result_allpart_pos_kampkort']       ?? '';       
-    $ditjaar_pos_leid_kampkort= $allpart_array['result_allpart_pos_leid_kampkort']  ?? ''; 
-    $ditjaar_pos_part_id      = $allpart_array['result_allpart_pos_part_id']        ?? '';
+    // Posities
+    $ditjaar_pos_kampfunctie        = $allpart_array['result_allpart_pos_kampfunctie']      ?? '';
+    $ditjaar_pos_leid_kampfunctie   = $allpart_array['result_allpart_pos_leid_kampfunctie'] ?? $ditjaar_pos_kampfunctie;
+    $ditjaar_pos_kampkort           = $allpart_array['result_allpart_pos_kampkort']         ?? '';       
+    $ditjaar_pos_leid_kampkort      = $allpart_array['result_allpart_pos_leid_kampkort']    ?? ''; 
+    $ditjaar_pos_part_id            = $allpart_array['result_allpart_pos_part_id']          ?? '';
 
     // Veiligheidscheck: Zonder ID stoppen we direct
-    // We checken nu ook of ditjaar_array gevuld is, om te voorkomen dat we met lege data draaien
     if (!($contact_id > 0 && is_array($ditjaar_array))) {
         wachthond($extdebug, 1, "ACL ABORT: Geen geldig Contact ID of missende data");
         return; 
     }
 
     // Extract status flags
-    $ditjaardeelyes = $ditjaar_array['ditjaardeelyes'] ?? 0; 
-    $ditjaardeelnot = $ditjaar_array['ditjaardeelnot'] ?? 0;
-    $ditjaarleidyes = $ditjaar_array['ditjaarleidyes'] ?? 0; 
-    $ditjaarleidnot = $ditjaar_array['ditjaarleidnot'] ?? 0; 
-    $ditjaardeeltst = $ditjaar_array['ditjaardeeltst'] ?? 0; 
+    $ditjaardeelyes                 = $ditjaar_array['ditjaardeelyes']                      ?? 0; 
+    $ditjaardeelnot                 = $ditjaar_array['ditjaardeelnot']                      ?? 0;
+    $ditjaarleidyes                 = $ditjaar_array['ditjaarleidyes']                      ?? 0; 
+    $ditjaarleidnot                 = $ditjaar_array['ditjaarleidnot']                      ?? 0; 
+    $ditjaardeeltst                 = $ditjaar_array['ditjaardeeltst']                      ?? 0; 
 
-    wachthond($extdebug,2, 'ditjaardeelyes',    $ditjaardeelyes);
-    wachthond($extdebug,2, 'ditjaardeelmss',    $ditjaardeelmss);
-    wachthond($extdebug,2, 'ditjaardeelnot',    $ditjaardeelnot);
-    wachthond($extdebug,2, 'ditjaarleidyes',    $ditjaarleidyes);
-    wachthond($extdebug,2, 'ditjaarleidmss',    $ditjaarleidmss);
-    wachthond($extdebug,2, 'ditjaarleidnot',    $ditjaarleidnot);
+    // Assignments voor logs
+    $ditjaardeelmss                 = $ditjaar_array['ditjaardeelmss']                      ?? 0;
+    $ditjaarleidmss                 = $ditjaar_array['ditjaarleidmss']                      ?? 0;
+
+    wachthond($extdebug,2, 'ditjaardeelyes',                $ditjaardeelyes);
+    wachthond($extdebug,2, 'ditjaardeelmss',                $ditjaardeelmss);
+    wachthond($extdebug,2, 'ditjaardeelnot',                $ditjaardeelnot);
+    wachthond($extdebug,2, 'ditjaarleidyes',                $ditjaarleidyes);
+    wachthond($extdebug,2, 'ditjaarleidmss',                $ditjaarleidmss);
+    wachthond($extdebug,2, 'ditjaarleidnot',                $ditjaarleidnot);
 
     // DEBUG OUTPUT
-    wachthond($extdebug,4, "drupal_id",                 $drupal_id);
-    wachthond($extdebug,3, "curcv_keer_deel",           $curcv_keer_deel);
-    wachthond($extdebug,3, "curcv_keer_leid",           $curcv_keer_leid);
+    wachthond($extdebug,4, "drupal_id",                     $drupal_id);
+    wachthond($extdebug,3, "curcv_keer_deel",               $curcv_keer_deel);
+    wachthond($extdebug,3, "curcv_keer_leid",               $curcv_keer_leid);
     
-    wachthond($extdebug, 3, "ditjaar_pos_kampfunctie",   $ditjaar_pos_kampfunctie);
-    wachthond($extdebug, 3, "ditjaar_pos_leid_kampkort", $ditjaar_pos_leid_kampkort);
+    wachthond($extdebug,3, "ditjaar_pos_kampfunctie",       $ditjaar_pos_kampfunctie);
+    wachthond($extdebug,3, "ditjaar_pos_leid_kampfunctie",  $ditjaar_pos_leid_kampfunctie);
+    wachthond($extdebug,3, "ditjaar_pos_leid_kampkort",     $ditjaar_pos_leid_kampkort);
 
     wachthond($extdebug,2, "########################################################################");
-    wachthond($extdebug,1, "### ACL 2.0 CONFIGURATIE MAP (De Lookup Array)",         "[$displayname]");
+    wachthond($extdebug,1, "### ACL 3.0 CONFIGURATIE MAP (De Lookup Array)",                "[$displayname]");
     wachthond($extdebug,2, "########################################################################");
     
     // DIT IS DE BELANGRIJKSTE LIJST VOOR ONDERHOUD
     // Hier koppel je de kamp-code (uit de database) aan de diverse Groep ID's.
-    // Nieuw kamp volgend jaar? Voeg hier een regel toe (bijv 'kk3' => [...]).
     
     $camp_map = [
         'kk1' => ['gedrag' => 1766, 'drukwerk' => 1666, 'keuken' => 1675, 'keukenteam' => 1871, 'hl' => 1853, 'kt' => 1883, 'google' => '01baon6m3wo0451'],
@@ -322,7 +365,7 @@ function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_
     $gid_keukenstaf_algemeen    = 1882;
     $gid_topkamp_algemeen       = 1756;
     $gid_ditjaardeel            = 1846;
-    $gid_alleleiding            = 1849; // Ditjaar Alle Leiding
+    $gid_alleleiding            = 1849; 
     $gid_groepsleiding          = 1850;
     $gid_teamspecials_algemeen  = 457;
     $gid_kampstaf               = 456;
@@ -332,7 +375,7 @@ function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_
     $gid_belangstelling         = 855;
 
     // Bepaal de huidige config op basis van de kampcode van de persoon
-    $current_camp = $camp_map[$ditjaar_pos_leid_kampkort] ?? null;
+    $current_camp               = $camp_map[$ditjaar_pos_leid_kampkort] ?? null;
     
     // Debug logging voor config
     if ($current_camp) {
@@ -342,11 +385,10 @@ function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_
     }
 
     wachthond($extdebug,2, "########################################################################");
-    wachthond($extdebug,1, "### ACL 3.0 MEMBERSHIP LOGICA (PRESALE)");
+    wachthond($extdebug,1, "### ACL 4.0 MEMBERSHIP LOGICA (PRESALE)");
     wachthond($extdebug,2, "########################################################################");
 
     // Peildatum logica: 1 augustus is de knip voor het nieuwe seizoen.
-    // Variabele is 'static' zodat we dit maar 1x berekenen per run.
     static $augustusDeadline = NULL;
     if ($augustusDeadline === NULL) {
         $augustusDeadline = new DateTime('first day of August');
@@ -357,46 +399,64 @@ function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_
     // Is de persoon dit "boekjaar" mee geweest?
     $isJuisteJaar = ((int)$laatste_keer === (int)$augustusDeadline->format('Y'));
 
-    // Check huidig membership status
+    // Check huidig membership status via vernieuwde API4 structuur
     $params_membership_get = [
-      'checkPermissions' => FALSE,
-      'select' => ['id'],
-      'where' => [
-          ['contact_id', '=', $contact_id],
-          ['status_id:label', '=', 'Actief'],
-          ['membership_type_id:label', '=', 'presalemember'],
-      ],
+        'checkPermissions'          => FALSE,
+        'select'                    => [
+            'id',
+        ],
+        'where'                     => [
+            ['contact_id',                  '=', $contact_id],
+            ['status_id:label',             '=', 'Actief'],
+            ['membership_type_id:label',    '=', 'presalemember'],
+        ],
     ];
-    $membership_id = civicrm_api4('Membership','get', $params_membership_get)->first()['id'] ?? NULL;
+    wachthond($extdebug,7, 'params_membership_get',             $params_membership_get);
+    $result_membership_get  = civicrm_api4('Membership','get',  $params_membership_get);
+    wachthond($extdebug,9, 'result_membership_get',             $result_membership_get);
+    
+    $membership_id          = $result_membership_get->first()['id'] ?? NULL;
 
     // Actie: Aanmaken of Verwijderen
     if ($isJuisteJaar && !$membership_id) {
-        civicrm_api4('Membership','create', [
-            'checkPermissions' => FALSE,
-            'values' => [
-                'contact_id' => $contact_id,
-                'membership_type_id:label' => 'presalemember',
-                'status_id:label' => 'Actief',
+        
+        $params_membership_create = [
+            'checkPermissions'          => FALSE,
+            'values'                    => [
+                'contact_id'                => $contact_id,
+                'membership_type_id:label'  => 'presalemember',
+                'status_id:label'           => 'Actief',
             ],
-        ]);
-        wachthond($extdebug,3, "Membership presale toegekend", $displayname);
+        ];
+        wachthond($extdebug,7, 'params_membership_create',              $params_membership_create);
+        $result_membership_create   = civicrm_api4('Membership','create', $params_membership_create);
+        wachthond($extdebug,9, 'result_membership_create',              $result_membership_create);
+        
+        wachthond($extdebug,3, "Membership presale toegekend",          $displayname);
+        
     } elseif (!$isJuisteJaar && $membership_id) {
-        civicrm_api4('Membership','delete', [
-            'checkPermissions' => FALSE,
-            'where' => [['id', '=', $membership_id]],
-        ]);
-        wachthond($extdebug,3, "Membership presale verwijderd", $displayname);
+        
+        $params_membership_delete = [
+            'checkPermissions'          => FALSE,
+            'where'                     => [
+                ['id', '=', $membership_id],
+            ],
+        ];
+        wachthond($extdebug,7, 'params_membership_delete',              $params_membership_delete);
+        $result_membership_delete   = civicrm_api4('Membership','delete', $params_membership_delete);
+        wachthond($extdebug,9, 'result_membership_delete',              $result_membership_delete);
+        
+        wachthond($extdebug,3, "Membership presale verwijderd",         $displayname);
     }
 
     wachthond($extdebug,2, "########################################################################");
-    wachthond($extdebug,1, "### ACL 4.0 ALGEMENE CLEANUP");
+    wachthond($extdebug,1, "### ACL 5.0 ALGEMENE CLEANUP");
     wachthond($extdebug,2, "########################################################################");
 
     // Als iemand vorig jaar mee was, maar dit jaar niet, moeten we opruimen.
-    
     if ($ditjaardeelnot == 1) {
         wachthond($extdebug,2, "########################################################################");
-        wachthond($extdebug,1, "### ACL 4.1 ALGEMENE CLEANUP DEELNEMER (NIET MEE DIT JAAR)");
+        wachthond($extdebug,1, "### ACL 5.1 ALGEMENE CLEANUP DEELNEMER (NIET MEE DIT JAAR)");
         wachthond($extdebug,2, "########################################################################");
 
         acl_group_remove($contact_id, [$gid_topkamp_algemeen, $gid_ditjaardeel], 'cleanup_deel_algemeen');
@@ -405,7 +465,7 @@ function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_
 
     if ($ditjaarleidnot == 1 AND $ditjaardeeltst == 0) {
         wachthond($extdebug,2, "########################################################################");
-        wachthond($extdebug,1, "### ACL 4.2 ALGEMENE CLEANUP LEIDING (NIET MEE DIT JAAR)");
+        wachthond($extdebug,1, "### ACL 5.2 ALGEMENE CLEANUP LEIDING (NIET MEE DIT JAAR)");
         wachthond($extdebug,2, "########################################################################");
 
         // Verwijder uit algemene leiding groepen
@@ -419,7 +479,7 @@ function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_
     }
 
     wachthond($extdebug,2, "########################################################################");
-    wachthond($extdebug,1, "### ACL 5.0 OOIT GROEPEN (BELANGSTELLING/HISTORIE)");
+    wachthond($extdebug,1, "### ACL 6.0 OOIT GROEPEN (BELANGSTELLING/HISTORIE)");
     wachthond($extdebug,2, "########################################################################");
     
     // A. Belangstelling (Gebaseerd op datum veld)
@@ -440,7 +500,7 @@ function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_
     else cms_rol_remove($drupal_id, $displayname, 'ooit_leiding');
 
     wachthond($extdebug,2, "########################################################################");
-    wachthond($extdebug,1, "### ACL 5.1 DIT JAAR ALGEMENE GROEPEN (DITJAARDEEL)");
+    wachthond($extdebug,1, "### ACL 6.1 DIT JAAR ALGEMENE GROEPEN (DITJAARDEEL)");
     wachthond($extdebug,2, "########################################################################");
 
     // 1. Definieer de instellingen voor deze groep/rol
@@ -452,15 +512,13 @@ function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_
 
     // 2. Uitvoering op basis van de status 'ditjaardeelyes'
     if ($ditjaardeelyes == 1) {
-        // Voeg toe aan CiviCRM én Drupal
         permissions_add($contact_id, $drupal_id, $displayname, $acl_ditjaardeel);
     } else {
-        // Niet (meer) mee dit jaar? Dan netjes opruimen
         permissions_rem($contact_id, $drupal_id, $displayname, $acl_ditjaardeel);
     }
 
     wachthond($extdebug,2, "########################################################################");
-    wachthond($extdebug,1, "### ACL 6.0 DIT JAAR ALGEMENE GROEPEN (ALLE LEIDING / GL)");
+    wachthond($extdebug,1, "### ACL 7.0 DIT JAAR ALGEMENE GROEPEN (ALLE LEIDING / GL)");
     wachthond($extdebug,2, "########################################################################");
 
     // A. Ditjaar Alle Leiding
@@ -473,6 +531,7 @@ function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_
 
     // B. Ditjaar Groepsleiding
     $acl_groepsleiding = ['aclgroup' => $gid_groepsleiding, 'cmsrol' => 'ditjaar_groepsleiding', 'acl_group_label' => 'groepsleiding'];
+    
     if ($ditjaarleidyes == 1 && $ditjaar_pos_leid_kampfunctie == 'groepsleiding') {
         permissions_add($contact_id, $drupal_id, $displayname, $acl_groepsleiding);
     } else {
@@ -482,60 +541,52 @@ function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_
     if ($curcv_keer_leid > 0) {
         
         wachthond($extdebug,2, "########################################################################");
-        wachthond($extdebug,1, "### ACL 7.0 SPECIFIEKE ROL SYNC (EVENT VERIFICATIE)");
+        wachthond($extdebug,1, "### ACL 8.0 SPECIFIEKE ROL SYNC (EVENT VERIFICATIE)");
         wachthond($extdebug,2, "########################################################################");
 
-        // Hier vindt de magie plaats: We syncen de gebruiker naar de juiste sub-groep
-        // (bijv. 'kk1-gedrag') en verwijderen hem uit alle andere opties.
-
         wachthond($extdebug,2, "########################################################################");
-        wachthond($extdebug,1, "### ACL 7.1 SYNC GEDRAGSGROEPEN (ONLY EVENT CHECK)", "[$displayname]");
+        wachthond($extdebug,1, "### ACL 8.1 SYNC GEDRAGSGROEPEN (ONLY EVENT CHECK)", "[$displayname]");
         wachthond($extdebug,2, "########################################################################");
 
         // A. Configuratie ophalen
         $all_gedrag_ids     = array_column($camp_map, 'gedrag');
         $camp_gedrag_id     = $current_camp['gedrag'] ?? NULL;
         
-        wachthond($extdebug, 3, "7.1 DEBUG - Config", "Huidig Kamp ID: " . ($camp_gedrag_id ?? 'GEEN'));
+        wachthond($extdebug, 3, "8.1 DEBUG - Config", "Huidig Kamp ID: " . ($camp_gedrag_id ?? 'GEEN'));
 
-        // B. Check: Event Velden (Dit is nu de ENIGE manier om toegang te krijgen)
-        // AANGEPAST: 1 per regel en nieuwe keys
+        // B. Check: Event Velden 
         $check_ids_gedrag = [
             $eventrollen_array['event_gedrag0_id'], 
             $eventrollen_array['event_gedrag1_id'], 
             $eventrollen_array['event_gedrag2_id']
         ];
         
-        // Is de persoon ingevuld bij de gedragsrollen in het event?
         $is_gedrag_coord = in_array($contact_id, $check_ids_gedrag);
 
-        wachthond($extdebug, 3, "7.1 DEBUG - Check Event Velden", [
+        wachthond($extdebug, 3, "8.1 DEBUG - Check Event Velden", [
             'Mijn ID'            => $contact_id,
             'Gevonden?'          => $is_gedrag_coord ? 'JA' : 'NEE',
             'Velden IDs'         => implode(',', array_filter($check_ids_gedrag))
         ]);
 
-        // C. Target Bepalen (Specifieke Kamp Groep)
-        // Je moet een kamp hebben ($camp_gedrag_id) EN in het event staan ($is_gedrag_coord)
+        // C. Target Bepalen
         $target_gedrag = ($camp_gedrag_id && $is_gedrag_coord) ? $camp_gedrag_id : NULL;
 
-        wachthond($extdebug, 1, "7.1 CONCLUSIE SPECIFIEKE GROEP", [
+        wachthond($extdebug, 1, "8.1 CONCLUSIE SPECIFIEKE GROEP", [
             'Kamp Bekend?'      => $camp_gedrag_id ? 'JA' : 'NEE',
             'In Event?'         => $is_gedrag_coord ? 'JA' : 'NEE',
             '>>> TARGET GROUP'  => $target_gedrag ?? 'GEEN (Wordt verwijderd uit alle gedragsgroepen)'
         ]);
         
-        // 1. Voer de Sync uit voor specifieke groepen (bijv. gedrag-kk1)
+        // 1. Voer de Sync uit voor specifieke groepen
         acl_group_sync($contact_id, $target_gedrag, $all_gedrag_ids, 'gedrag');
         
         // D. Algemene Groep (457) & CMS Rol Logic
-        // Als je in EEN event als gedrag staat, mag je ook in de algemene groep.
         $acl_teamspecials_alg = ['aclgroup' => $gid_teamspecials_algemeen, 'cmsrol' => 'ditjaar_teamspecials', 'acl_group_label' => 'teamspecials_algemeen'];
         
-        // Logic: Als je een target hebt (dus gekoppeld aan een kamp) OF in het event staat (als het kamp nog niet bekend is)
         $should_have_general = ($target_gedrag || $is_gedrag_coord);
         
-        wachthond($extdebug, 1, "7.1 CONCLUSIE ALGEMENE GROEP ($gid_teamspecials_algemeen)", [
+        wachthond($extdebug, 1, "8.1 CONCLUSIE ALGEMENE GROEP ($gid_teamspecials_algemeen)", [
             '>>> ACTIE'         => $should_have_general ? 'TOEVOEGEN (Indien nodig)' : 'VERWIJDEREN'
         ]);
 
@@ -544,14 +595,14 @@ function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_
         } else {
              permissions_rem($contact_id, $drupal_id, $displayname, $acl_teamspecials_alg);
         }
+
         wachthond($extdebug,2, "########################################################################");
-        wachthond($extdebug,1, "### ACL 7.2 SYNC DRUKWERK", "[$displayname]");
+        wachthond($extdebug,1, "### ACL 8.2 SYNC DRUKWERK", "[$displayname]");
         wachthond($extdebug,2, "########################################################################");
         
         $all_drukwerk_ids = array_column($camp_map, 'drukwerk');
         $camp_drukwerk_id = $current_camp['drukwerk'] ?? NULL;
         
-        // Verificatie met Event Data (AANGEPAST):
         $is_boekje_coord = in_array($contact_id, [
             $eventrollen_array['event_boekje0_id'],
             $eventrollen_array['event_boekje1_id'],
@@ -568,13 +619,12 @@ function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_
         else cms_rol_remove($drupal_id, $displayname, 'ditjaar_drukwerk');
 
         wachthond($extdebug,2, "########################################################################");
-        wachthond($extdebug,1, "### ACL 7.3 SYNC KEUKENCHEF", "[$displayname]");
+        wachthond($extdebug,1, "### ACL 8.3 SYNC KEUKENCHEF", "[$displayname]");
         wachthond($extdebug,2, "########################################################################");
         
         $all_keuken_ids = array_column($camp_map, 'keuken');
         $camp_keuken_id = $current_camp['keuken'] ?? NULL;
 
-        // Verificatie met Event Data (AANGEPAST):
         $is_in_event_keuken = in_array($contact_id, [
             $eventrollen_array['event_keuken0_id'],
             $eventrollen_array['event_keuken1_id'],
@@ -582,18 +632,15 @@ function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_
             $eventrollen_array['event_keuken3_id']
         ]);
         
-        // Check ook op functie (voor de zekerheid)
         $is_functie_hoofd = ($ditjaar_pos_leid_kampfunctie == 'hoofdkeuken');
 
         // Uitzondering Daniel Fritschij
         if ($contact_id == 19210) { 
-            // Daniel krijgt alles
             foreach ($all_keuken_ids as $gid) {
                 permissions_add($contact_id, $drupal_id, $displayname, ['aclgroup' => $gid, 'acl_group_label' => 'KeukenChef (Daniel)']);
             }
-            $target_keuken = NULL; // Sync hoeft niet meer, is hierboven handmatig gedaan
+            $target_keuken = NULL; 
         } else {
-            // Normale check: Zit in event velden OF heeft de functie
             $target_keuken = ($camp_keuken_id && ($is_in_event_keuken || $is_functie_hoofd)) ? $camp_keuken_id : NULL;
             
             wachthond($extdebug,1, "Check Keukenchef", "Event: " . ($is_in_event_keuken ? 'JA' : 'NEE') . " -> Target: " . ($target_keuken ?? 'GEEN'));
@@ -605,7 +652,7 @@ function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_
         else cms_rol_remove($drupal_id, $displayname, 'ditjaar_keukenhoofd');
 
         wachthond($extdebug,2, "########################################################################");
-        wachthond($extdebug,1, "### ACL 7.4 SYNC KEUKENTEAM SPECIFIEK", "[$displayname]");
+        wachthond($extdebug,1, "### ACL 8.4 SYNC KEUKENTEAM SPECIFIEK", "[$displayname]");
         wachthond($extdebug,2, "########################################################################");
         
         $all_kt_ids = array_column($camp_map, 'keukenteam');
@@ -613,7 +660,6 @@ function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_
         
         $is_keuken_functie = in_array($ditjaar_pos_leid_kampfunctie, ['hoofdkeuken', 'keukenteamlid']);
         
-        // Hier vertrouwen we op de functie-rol, niet op specifieke event-velden (want er zijn geen velden voor alle leden)
         $target_kt = ($camp_kt_id && $is_keuken_functie) ? $camp_kt_id : NULL;
 
         wachthond($extdebug,1, "Check Keukenteam", "Functie: " . ($is_keuken_functie ? 'JA' : 'NEE'));
@@ -621,7 +667,7 @@ function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_
         acl_group_sync($contact_id, $target_kt, $all_kt_ids, 'keukenteam');
 
         wachthond($extdebug,2, "########################################################################");
-        wachthond($extdebug,1, "### ACL 7.5 SYNC KEUKENTEAM ALGEMEEN", "[$displayname]");
+        wachthond($extdebug,1, "### ACL 8.5 SYNC KEUKENTEAM ALGEMEEN", "[$displayname]");
         wachthond($extdebug,2, "########################################################################");
         
         $acl_kt_algemeen = ['aclgroup' => $gid_keukenstaf_algemeen, 'cmsrol' => 'ditjaar_keukenteam', 'acl_group_label' => 'keukenstaf_algemeen'];
@@ -629,26 +675,26 @@ function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_
             permissions_add($contact_id, $drupal_id, $displayname, $acl_kt_algemeen);
         } else {
             permissions_rem($contact_id, $drupal_id, $displayname, $acl_kt_algemeen);
-        }        
+        }       
     }
 
     wachthond($extdebug,2, "########################################################################");
-    wachthond($extdebug,1, "### ACL 8.0 STAF FUNCTIES (HOOFDLEIDING & KERNTEAM)", "[$displayname]");
+    wachthond($extdebug,1, "### ACL 9.0 STAF FUNCTIES (HOOFDLEIDING & KERNTEAM)", "[$displayname]");
     wachthond($extdebug,2, "########################################################################");
     
     $group_staf_member = acl_group_get($contact_id, $gid_kampstaf, 'check')['group_member'];
 
     wachthond($extdebug,2, "########################################################################");
-    wachthond($extdebug,1, "### ACL 8.1 HOOFDLEIDING (SPECIFIEK & ALGEMEEN)", "[$displayname]");
+    wachthond($extdebug,1, "### ACL 9.1 HOOFDLEIDING (SPECIFIEK & ALGEMEEN)", "[$displayname]");
     wachthond($extdebug,2, "########################################################################");
 
     // 1. Config & Inputs
     $all_hl_ids = array_column($camp_map, 'hl');
     $camp_hl_id = $current_camp['hl'] ?? NULL;
     
-    wachthond($extdebug, 3, "8.1 DEBUG - Config", "Specifieke Kamp Groep ID: " . ($camp_hl_id ?? 'GEEN'));
+    wachthond($extdebug, 3, "9.1 DEBUG - Config", "Specifieke Kamp Groep ID: " . ($camp_hl_id ?? 'GEEN'));
 
-    // 2. Checks (AANGEPAST)
+    // 2. Checks 
     $check_ids_hl = [
         $eventrollen_array['event_hldn1_id'], 
         $eventrollen_array['event_hldn2_id'], 
@@ -656,34 +702,34 @@ function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_
     ];
     $is_in_event_hl = in_array($contact_id, $check_ids_hl);
 
-    wachthond($extdebug, 3, "8.1 DEBUG - Check 1: Event Velden", [
+    wachthond($extdebug, 3, "9.1 DEBUG - Check 1: Event Velden", [
         'Mijn ID' => $contact_id,
         'Gevonden in velden?' => $is_in_event_hl ? 'JA' : 'NEE'
     ]);
 
     $is_functie_hl = ($ditjaar_pos_kampfunctie == 'hoofdleiding');
     
-    wachthond($extdebug, 3, "8.1 DEBUG - Check 2: Functie", [
-        'Mijn Functie' => $ditjaar_pos_kampfunctie, // <-- Deze moet nu 'hoofdleiding' tonen
+    wachthond($extdebug, 3, "9.1 DEBUG - Check 2: Functie", [
+        'Mijn Functie' => $ditjaar_pos_kampfunctie, 
         'Verwacht' => 'hoofdleiding',
         'Match?' => $is_functie_hl ? 'JA' : 'NEE'
     ]);
     
-    // 3. Conclusie: ALLES moet WAAR zijn
+    // 3. Conclusie
     $is_valid_hl = ($group_staf_member && $is_in_event_hl && $is_functie_hl);
 
-    wachthond($extdebug, 1, "8.1 CONCLUSIE LOGICA", [
+    wachthond($extdebug, 1, "9.1 CONCLUSIE LOGICA", [
         '1. Lid Kampstaf (456)?' => $group_staf_member ? 'JA' : 'NEE',
         '2. Staat in Event?' => $is_in_event_hl ? 'JA' : 'NEE',
         '3. Heeft Functie?' => $is_functie_hl ? 'JA' : 'NEE',
         '>>> TOTAAL OORDEEL' => $is_valid_hl ? 'GELDIG' : 'ONGELDIG'
     ]);
 
-    // 4. Actie A: Specifieke Kamp Groep Sync
+    // 4. Actie A
     $target_hl = ($camp_hl_id && $is_valid_hl) ? $camp_hl_id : NULL;
     acl_group_sync($contact_id, $target_hl, $all_hl_ids, 'specifieke_hl');
 
-    // 5. Actie B: Algemene Groep
+    // 5. Actie B
     $acl_hl_algemeen = ['aclgroup' => $gid_hoofdleiding, 'cmsrol' => 'ditjaar_hoofdleiding', 'acl_group_label' => 'hoofdleiding_algemeen'];
     if ($is_valid_hl) {
         permissions_add($contact_id, $drupal_id, $displayname, $acl_hl_algemeen);
@@ -692,16 +738,16 @@ function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_
     }
 
     wachthond($extdebug,2, "########################################################################");
-    wachthond($extdebug,1, "### ACL 8.2 KERNTEAM (SPECIFIEK & ALGEMEEN)", "[$displayname]");
+    wachthond($extdebug,1, "### ACL 9.2 KERNTEAM (SPECIFIEK & ALGEMEEN)", "[$displayname]");
     wachthond($extdebug,2, "########################################################################");
 
     // 1. Config & Inputs
     $all_kt_spec_ids = array_column($camp_map, 'kt');
     $camp_kt_spec_id = $current_camp['kt'] ?? NULL;
 
-    wachthond($extdebug, 3, "8.2 DEBUG - Config", "Specifieke Kamp Groep ID: " . ($camp_kt_spec_id ?? 'GEEN'));
+    wachthond($extdebug, 3, "9.2 DEBUG - Config", "Specifieke Kamp Groep ID: " . ($camp_kt_spec_id ?? 'GEEN'));
 
-    // 2. Checks (AANGEPAST)
+    // 2. Checks 
     $check_ids_kt = [
         $eventrollen_array['event_kern1_id'], 
         $eventrollen_array['event_kern2_id'], 
@@ -709,7 +755,7 @@ function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_
     ];
     $is_in_event_kt = in_array($contact_id, $check_ids_kt);
     
-    wachthond($extdebug, 3, "8.2 DEBUG - Check 1: Event Velden", [
+    wachthond($extdebug, 3, "9.2 DEBUG - Check 1: Event Velden", [
         'Mijn ID' => $contact_id,
         'Gevonden in velden?' => $is_in_event_kt ? 'JA' : 'NEE'
     ]);
@@ -718,27 +764,27 @@ function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_
     
     $is_functie_kt = in_array($ditjaar_pos_kampfunctie, $allowed_functions_kt);
 
-    wachthond($extdebug, 3, "8.2 DEBUG - Check 2: Functie", [
-        'Mijn Functie' => $ditjaar_pos_kampfunctie, // <-- Deze toont nu de functie
+    wachthond($extdebug, 3, "9.2 DEBUG - Check 2: Functie", [
+        'Mijn Functie' => $ditjaar_pos_kampfunctie, 
         'Toegestaan' => implode(',', $allowed_functions_kt),
         'Match?' => $is_functie_kt ? 'JA' : 'NEE'
     ]);
 
-    // 3. Conclusie: ALLES moet WAAR zijn
+    // 3. Conclusie
     $is_valid_kt = ($group_staf_member && $is_in_event_kt && $is_functie_kt);
 
-    wachthond($extdebug, 1, "8.2 CONCLUSIE LOGICA", [
+    wachthond($extdebug, 1, "9.2 CONCLUSIE LOGICA", [
         '1. Lid Kampstaf (456)?' => $group_staf_member ? 'JA' : 'NEE',
         '2. Staat in Event?'     => $is_in_event_kt ? 'JA' : 'NEE',
         '3. Heeft Functie?'      => $is_functie_kt ? 'JA' : 'NEE',
         '>>> TOTAAL OORDEEL'     => $is_valid_kt ? 'GELDIG' : 'ONGELDIG'
     ]);
 
-    // 4. Actie A: Specifieke Kamp Groep Sync
+    // 4. Actie A
     $target_kt_spec = ($camp_kt_spec_id && $is_valid_kt) ? $camp_kt_spec_id : NULL;
     acl_group_sync($contact_id, $target_kt_spec, $all_kt_spec_ids, 'specifieke_kt');
 
-    // 5. Actie B: Algemene Groep
+    // 5. Actie B
     $acl_kt_algemeen = ['aclgroup' => $gid_kernteam, 'cmsrol' => 'ditjaar_kernteam', 'acl_group_label' => 'kernteam_algemeen'];
     if ($is_valid_kt) {
         permissions_add($contact_id, $drupal_id, $displayname, $acl_kt_algemeen);
@@ -747,7 +793,7 @@ function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_
     }
 
     wachthond($extdebug,2, "########################################################################");
-    wachthond($extdebug,1, "### ACL 9.0 EVENT REGISTRATIE & EMAILS");
+    wachthond($extdebug,1, "### ACL 10.0 EVENT REGISTRATIE (TOERUSTING)");
     wachthond($extdebug,2, "########################################################################");
 
     $is_bestuur = acl_group_get($contact_id, $gid_bestuur, 'check')['group_member'];
@@ -757,94 +803,53 @@ function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_
         $events_cache = find_eventids();
         $kampids_toer = $events_cache['toer'] ?? [];
         
-        // Haal bestaande registraties op
-        $array_cv = cv_civicrm_configure($contact_id, $array_contditjaar, $ditjaar_array);
-        $evtcv_toer_array = $array_cv['evtcv_toer_array'] ?? [];
-
-        // Bereken verschil (welke missen we nog?)
-        $missing = array_diff($kampids_toer, $evtcv_toer_array);
-        
-        foreach ($missing as $eid) {
+        foreach ($kampids_toer as $eid) {
             if ($eid > 0) {
-                civicrm_api4('Participant','create', [
-                    'checkPermissions' => FALSE,
-                    'values' => [
-                        'contact_id'    => $contact_id,
-                        'event_id'      => $eid,
-                        'register_date' => $today_datetime,
-                        'status_id'     => 24, // Status: In afwachting
-                        'role_id'       => [7], // Rol: Deelnemer
-                    ]
-                ]);
-                wachthond($extdebug,3, "Geregistreerd voor Toerusting Event", $eid);
-            }
-        }
-    }
-
-    // -------------------------------------------------------------------------
-    // 9.1 EMAIL NOTIFICATIES (Alleen voor HL/Kernteam)
-    // -------------------------------------------------------------------------
-    if ($group_staf_member && in_array($ditjaar_pos_leid_kampfunctie, ['hoofdleiding', 'kernteamlid'])) {
-
-        wachthond($extdebug, 2, "########################################################################");
-        wachthond($extdebug, 1, "### ACL 9.1 EMAIL NOTIFICATIES UPDATE VOOR $displayname");
-        wachthond($extdebug, 2, "########################################################################");
-
-        // Prioriteit: Participant settings > Contact settings > Default (privemail)
-        $notif_map = [
-            'notif_deel' => $array_contditjaar['cont_notificatie_deel'] ?? 'privemail',
-            'notif_leid' => $array_contditjaar['cont_notificatie_leid'] ?? 'privemail',
-            'notif_kamp' => $array_contditjaar['cont_notificatie_kamp'] ?? 'privemail',
-            'notif_staf' => $array_contditjaar['cont_notificatie_staf'] ?? 'privemail',
-        ];
-
-        // 1. Maak/Update CiviCRM E-mails (Location Types)
-        foreach ($notif_map as $type_label => $voorkeur) {
-            $target_email = NULL;
-            if ($voorkeur == 'kamppers') {
-                $target_email = $email_onvr_email;
-            } elseif ($voorkeur == 'privemail') {
-                $target_email = $email_priv_email;
-            }
-
-            if ($target_email) {
-                $params_email_save = [
-                    'checkPermissions' => FALSE,
-                    'records' => [[
-                        'location_type_id:name' => $type_label,
-                        'email'       => $target_email,
-                        'contact_id' => $contact_id,
-                        'is_primary' => FALSE,
-                    ]],
-                    'match' => ['contact_id', 'location_type_id'],
+                
+                $params_part_get = [
+                    'checkPermissions'  => FALSE,
+                    'select'            => [
+                        'id',
+                    ],
+                    'where'             => [
+                        ['contact_id',  '=', $contact_id],
+                        ['event_id',    '=', $eid],
+                    ],
+                    'limit'             => 1,
                 ];
-                if ($extwrite == 1 && !in_array($privacy_voorkeuren, ["33", "44"])) {
-                    civicrm_api4('Email', 'save', $params_email_save);
-                    wachthond($extdebug, 2, "$type_label opgeslagen", $target_email);
+                
+                wachthond($extdebug, 7, "params_part_get",          $params_part_get);
+                $result_part_get    = civicrm_api4('Participant','get', $params_part_get);
+                wachthond($extdebug, 9, "result_part_get",          $result_part_get);
+                $check_exists       = $result_part_get->first();
+
+                if (!$check_exists) {
+                    $params_part_create = [
+                        'checkPermissions'  => FALSE,
+                        'values'            => [
+                            'contact_id'    => $contact_id,
+                            'event_id'      => $eid,
+                            'register_date' => $today_datetime,
+                            'status_id'     => 24,  
+                            'role_id'       => [7], 
+                        ],
+                    ];
+
+                    wachthond($extdebug, 7, "params_part_create",           $params_part_create);
+                    $result_part_create = civicrm_api4('Participant','create', $params_part_create);
+                    wachthond($extdebug, 9, "result_part_create",           $result_part_create);
+                    
+                    wachthond($extdebug, 1, "ACL SUCCESS: Automatische RSVP aangemaakt voor Event $eid", "PID: " . $result_part_create->first()['id']);
+                } else {
+                    wachthond($extdebug, 3, "ACL SKIP: Registratie voor Event $eid bestaat al", "PID: " . $check_exists['id']);
                 }
             }
         }
-
-        // 2. Update Participant Record (indien aanwezig)
-        if ($ditjaar_pos_part_id) { 
-            $params_part_notif = [
-                'checkPermissions' => FALSE,
-                'where'  => [['id', '=', $ditjaar_pos_part_id]],
-                'values' => [
-                    'PART_LEID_HOOFD.notificatie_deel' => $notif_map['notif_deel'], 
-                    'PART_LEID_HOOFD.notificatie_leid' => $notif_map['notif_leid'], 
-                    'PART_LEID_HOOFD.notificatie_kamp' => $notif_map['notif_kamp'], 
-                    'PART_LEID_HOOFD.notificatie_staf' => $notif_map['notif_staf'],
-                ],
-            ];
-            if ($extwrite == 1) {
-                civicrm_api4('Participant', 'update', $params_part_notif);
-                wachthond($extdebug, 2, "Participant notif fields geupdate", $ditjaar_pos_part_id);
-            }
-        }
     }
 
+    wachthond($extdebug, 2, "########################################################################");
     wachthond($extdebug,1, "### ACL - EINDE CONFIG VOOR $displayname");
+    wachthond($extdebug, 2, "########################################################################");
 }
 
 /**
@@ -892,14 +897,11 @@ function acl_group_remove($contactid, $group, $group_label) {
             wachthond($extdebug, 3, "########################################################################");
 
             if ($extwrite == 1) {
-                // AANPASSING: Update status naar 'Removed' zodat historie bewaard blijft
-                foreach($ids_to_remove as $record_id) {
-                    $result_remove = civicrm_api4('GroupContact', 'update', [
-                        'checkPermissions' => FALSE,
-                        'where' => [['id', '=', $record_id]],
-                        'values' => ['status' => 'Removed']
-                    ]);
-                }
+                civicrm_api4('GroupContact', 'update', [
+                    'checkPermissions' => FALSE,
+                    'where'  => [['id', 'IN', $ids_to_remove]],
+                    'values' => ['status' => 'Removed'],
+                ]);
                 
                 wachthond($extdebug, 1, 'Verwijderd uit ACL groepen (Status Removed)', implode(',', $groups_found));
             }
@@ -919,78 +921,9 @@ function acl_group_create($contactid, $group_id, $group_label) {
     permissions_add($contactid, NULL, "Unknown", ['aclgroup' => $group_id, 'acl_group_label' => $group_label]);
 }
 
-/**
- * ============================================================================
- * HELPER: GET GROUP STATUS (MET CACHE)
- * ============================================================================
- * Haalt efficiënt groepslidmaatschappen op.
- * Gebruikt een statische cache om te voorkomen dat we voor elke check de DB belasten.
- * LET OP: De cache wordt niet invalid bij writes! Daarom gebruiken write functies (add/rem) een live check.
- */
-function acl_group_get($contactid, $group_id, $group_label) {
-
-    $extdebug = 0;
-    
-    // 1. Statische cache: Dit blijft in het geheugen zolang het script draait (per contact)
-    static $contact_groups_cache = [];
-
-    // 2. Als we de groepen voor dit contact nog niet hebben, haal ze ALLEMAAL in 1x op
-    if (!isset($contact_groups_cache[$contactid])) {
-        
-        wachthond($extdebug,3, "########################################################################");
-        wachthond($extdebug,3, "### ACL - GET INFO ABOUT CID $contactid (ALL GROUPS)");
-        wachthond($extdebug,3, "########################################################################");      
-        
-        $contact_groups_cache[$contactid] = [];
-
-        // Gebruik API4 voor snelheid
-        $results = civicrm_api4('GroupContact', 'get', [
-            'checkPermissions' => FALSE,
-            'select' => ['group_id', 'status', 'group_id:label'],
-            'where' => [['contact_id', '=', $contactid]]
-        ]);
-
-        // Stop resultaten in de cache met group_id als sleutel
-        foreach ($results as $row) {
-            $gid = $row['group_id'];
-            $contact_groups_cache[$contactid][$gid] = [
-                'status' => $row['status'],
-                'label'  => $row['group_id:label'] ?? ''
-            ];
-        }
-    }
-
-    // 3. Nu doen we de check puur in het geheugen (Razendsnel!)
-    $group_data     = $contact_groups_cache[$contactid][$group_id] ?? NULL;
-    $group_count    = 0;
-    $group_member   = 0;
-    $group_status   = NULL;
-    $fetched_label  = $group_label; 
-
-    if ($group_data) {
-        // We hebben een record gevonden (Added, Removed of Pending)
-        $group_count    = 1;
-        $group_status   = $group_data['status'];
-        $fetched_label  = $group_data['label']; 
-
-        if ($group_status == 'Added') {
-            $group_member = 1;
-        }
-    }
-
-    // 4. Return array
-    return array(
-        'contact_id'   => $contactid,
-        'group_status' => $group_status,
-        'group_label'  => $fetched_label, 
-        'group_count'  => $group_count,    
-        'group_member' => $group_member, 
-    );
-}
-
 function cms_rol_check($drupal_id, $displayname, $cmsrol) {
 
-    $extdebug    = 0;
+    $extdebug    = 3;
     $userhasrole = 0;
 
     // Cache voor Role ID's (Naam -> ID mapping) om Drupal calls te minimaliseren
@@ -1024,7 +957,7 @@ function cms_rol_check($drupal_id, $displayname, $cmsrol) {
 
 function cms_rol_add($drupal_id, $displayname, $cmsrol) {
 
-    $extdebug       = 0;           
+    $extdebug       = 3;           
 
     wachthond($extdebug,1, 'drupal_id',     $drupal_id);
     wachthond($extdebug,1, 'displayname',   $displayname);
@@ -1083,7 +1016,7 @@ function cms_rol_remove($drupal_id, $displayname, $cmsrol) {
  */
 function permissions_add($contact_id, $drupal_id, $displayname, $acl_array) {
 
-    $extdebug = 0; // 1 = basic // 2 = verbose // 3 = params // 4 = results
+    $extdebug = 3; // 1 = basic // 2 = verbose // 3 = params // 4 = results
 
     // 1. Variabelen uitpakken
     $aclgroup             = $acl_array['aclgroup']          ?? NULL;
@@ -1218,54 +1151,6 @@ function permissions_rem($contact_id, $drupal_id, $displayname, $acl_array) {
         if (cms_rol_check($drupal_id, $displayname, $cmsrol) == 1) {
             cms_rol_remove($drupal_id, $displayname, $cmsrol);
         }
-    }
-}
-
-function googlegroup_subscribe($googlegroup_id, $googlegroup_batch) {
-
-    $extdebug = 0;
-
-    $params_googlegroup_subscribe = [
-        'group_id'      => $googlegroup_id,
-        'emails'        => $googlegroup_batch,
-    ];
-    
-    try {
-        wachthond($extdebug, 2, 'params_googlegroup_subscribe', $params_googlegroup_subscribe);
-        
-        // We gebruiken @ om eventuele PHP warnings te onderdrukken die de API soms gooit
-        $result = @civicrm_api3('Googlegroups', 'subscribe', $params_googlegroup_subscribe);
-        
-        wachthond($extdebug, 3, 'result_googlegroup_subscribe', $result);
-    } 
-    catch (\Throwable $e) { 
-        // Gevangen! Zowel Exceptions als Fatale Errors (zoals TypeError)
-        $msg = $e->getMessage();
-        wachthond($extdebug, 1, "GOOGLE API FOUT (Subscribe)", $msg);
-    }
-}
-
-function googlegroup_deletemember($googlegroup_id, $googlegroup_batch) {
-
-    $extdebug = 0;
-
-    $params_googlegroup_deletemember = [
-        'group_id'      => $googlegroup_id,
-        'member'        => $googlegroup_batch,
-    ];
-    
-    try {
-        wachthond($extdebug, 2, 'params_googlegroup_deletemember', $params_googlegroup_deletemember);
-        
-        // We gebruiken @ om eventuele PHP warnings te onderdrukken
-        $result = @civicrm_api3('Googlegroups', 'deletemember', $params_googlegroup_deletemember);
-        
-        wachthond($extdebug, 3, 'result_googlegroup_deletemember', $result);
-    } 
-    catch (\Throwable $e) {
-        // Gevangen! Zowel Exceptions als Fatale Errors (zoals TypeError)
-        $msg = $e->getMessage();
-        wachthond($extdebug, 1, "GOOGLE API FOUT (Delete)", $msg);
     }
 }
 
