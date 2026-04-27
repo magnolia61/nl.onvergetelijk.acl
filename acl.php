@@ -1,27 +1,29 @@
 <?php
 
-// === FUNCTIE-INDEX ===
-// Bestand: acl.php
-// Functies in dit bestand:
-//   acl_civicrm_config()                 Implements hook_civicrm_config().
-//   acl_civicrm_install()                Implements hook_civicrm_install().
-//   acl_civicrm_enable()                 Implements hook_civicrm_enable().
-//   acl_civicrm_custom()
-//   acl_group_sync()                     HELPER: SMART SYNC
-//   acl_civicrm_configure()              HOOFDFUNCTIE: ACL CONFIGURATIE
-//   acl_group_remove()                   HELPER: GROUP REMOVE (MET HISTORIE BEHOUD)
-//   acl_group_update()
-//   acl_group_create()
-//   cms_rol_check()
-//   cms_rol_add()
-//   cms_rol_remove()
-//   permissions_add()                    HELPER: PERMISSIONS ADD (ROBUUSTE VERSIE)
-//   permissions_rem()                    HELPER: PERMISSIONS REMOVE (MET HISTORIE BEHOUD)
-//   acl_helper_get_takenrollen_matrix()  HELPER: MATRIX (MET NIEUWE KEYS)
-//   acl_civicrm_summaryActions()         Implements hook_civicrm_summaryActions().
-//   acl_civicrm_pageRun()                Implements hook_civicrm_pageRun().
-//   acl_civicrm_searchTasks()            Implements hook_civicrm_searchTasks().
-// === EINDE FUNCTIE-INDEX ===
+/**
+ * =======================================================================================
+ * FUNCTIE-INDEX: acl.php
+ * =======================================================================================
+ *   acl_civicrm_config()                 Implements hook_civicrm_config().
+ *   acl_civicrm_install()                Implements hook_civicrm_install().
+ *   acl_civicrm_enable()                 Implements hook_civicrm_enable().
+ *   acl_civicrm_custom()
+ *   acl_group_sync()                     HELPER: SMART SYNC
+ *   acl_civicrm_configure()              HOOFDFUNCTIE: ACL CONFIGURATIE
+ *   acl_group_remove()                   HELPER: GROUP REMOVE (MET HISTORIE BEHOUD)
+ *   acl_group_update()
+ *   acl_group_create()
+ *   cms_rol_check()
+ *   cms_rol_add()
+ *   cms_rol_remove()
+ *   permissions_add()                    HELPER: PERMISSIONS ADD (ROBUUSTE VERSIE)
+ *   permissions_rem()                    HELPER: PERMISSIONS REMOVE (MET HISTORIE BEHOUD)
+ *   acl_helper_get_takenrollen_matrix()  HELPER: MATRIX (MET NIEUWE KEYS)
+ *   acl_civicrm_summaryActions()         Implements hook_civicrm_summaryActions().
+ *   acl_civicrm_pageRun()                Implements hook_civicrm_pageRun().
+ *   acl_civicrm_searchTasks()            Implements hook_civicrm_searchTasks().
+ * =======================================================================================
+ */
 
 require_once 'acl.civix.php';
 require_once 'acl.helpers.php';
