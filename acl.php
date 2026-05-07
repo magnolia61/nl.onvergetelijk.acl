@@ -73,7 +73,7 @@ function acl_civicrm_custom($op, $groupID, $entityID) {
  */
 function acl_group_sync($contact_id, $target_group_id, $all_possible_groups, $label_prefix) {
     
-    $extdebug = 0; // Logging niveau voor sync details
+    $extdebug = 'acl.groups'; // Kanaal voor centrale debug-config; niveau wordt opgezocht in ozk.debug.config.php
 
     // Loop door ALLE mogelijke opties (bijv. alle kampen: kk1, kk2, top, etc.)
     foreach ($all_possible_groups as $group_id) {
@@ -111,7 +111,7 @@ function acl_group_sync($contact_id, $target_group_id, $all_possible_groups, $la
  */
 function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_array = NULL, $allpart_array = NULL, $drupal_id = NULL, $eventrollen_array = NULL) {
 
-    $extdebug       = 0; 
+    $extdebug = 'acl.configure'; // Kanaal voor centrale debug-config; niveau wordt opgezocht in ozk.debug.config.php
     $apidebug       = FALSE;
     $extwrite       = 1; 
     $regpast        = 1;
@@ -130,6 +130,9 @@ function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_
         wachthond($extdebug, 1, "ACL ABORT: Geen geldig Contact ID ($contact_id)");
         return;
     }
+
+    $acl_configure_start = microtime(TRUE);
+    watchdog('civicrm_timing', base_microtimer("START acl_configure [CID: $contact_id]"), NULL, WATCHDOG_DEBUG);
 
     wachthond($extdebug,2, "########################################################################");
     wachthond($extdebug,1, "### ACL 1.1 CONTACT DATA (Basisgegevens uit CiviCRM)");
@@ -849,6 +852,9 @@ function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_
         }
     }
 
+    $total_acl_configure_duur = number_format(microtime(TRUE) - $acl_configure_start, 3);
+    watchdog('civicrm_timing', base_microtimer("EINDE acl_configure"), NULL, WATCHDOG_DEBUG);
+
     wachthond($extdebug, 2, "########################################################################");
     wachthond($extdebug,1, "### ACL - EINDE CONFIG VOOR $displayname");
     wachthond($extdebug, 2, "########################################################################");
@@ -861,7 +867,7 @@ function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_
  */
 function acl_group_remove($contactid, $group, $group_label) {
 
-    $extdebug       = 0;
+    $extdebug = 'acl.groups'; // Kanaal voor centrale debug-config; niveau wordt opgezocht in ozk.debug.config.php
     $apidebug       = FALSE;
     $extwrite       = 1;
 
@@ -916,16 +922,16 @@ function acl_group_remove($contactid, $group, $group_label) {
 // acl_group_update en acl_group_create zijn feitelijk aliases voor permissions_add 
 // maar worden behouden voor backward compatibility als ze elders worden aangeroepen.
 function acl_group_update($contactid, $group_id, $group_label) {
-    permissions_add($contactid, NULL, "Unknown", ['aclgroup' => $group_id, 'acl_group_label' => $group_label]);
+    permissions_add($contactid, NULL, "CID $contactid", ['aclgroup' => $group_id, 'acl_group_label' => $group_label]);
 }
 
 function acl_group_create($contactid, $group_id, $group_label) {
-    permissions_add($contactid, NULL, "Unknown", ['aclgroup' => $group_id, 'acl_group_label' => $group_label]);
+    permissions_add($contactid, NULL, "CID $contactid", ['aclgroup' => $group_id, 'acl_group_label' => $group_label]);
 }
 
 function cms_rol_check($drupal_id, $displayname, $cmsrol) {
 
-    $extdebug    = 3;
+    $extdebug = 'acl.groups'; // Kanaal voor centrale debug-config; niveau wordt opgezocht in ozk.debug.config.php
     $userhasrole = 0;
 
     // Cache voor Role ID's (Naam -> ID mapping) om Drupal calls te minimaliseren
@@ -959,7 +965,7 @@ function cms_rol_check($drupal_id, $displayname, $cmsrol) {
 
 function cms_rol_add($drupal_id, $displayname, $cmsrol) {
 
-    $extdebug       = 3;           
+    $extdebug = 'acl.groups'; // Kanaal voor centrale debug-config; niveau wordt opgezocht in ozk.debug.config.php
 
     wachthond($extdebug,1, 'drupal_id',     $drupal_id);
     wachthond($extdebug,1, 'displayname',   $displayname);
@@ -974,6 +980,9 @@ function cms_rol_add($drupal_id, $displayname, $cmsrol) {
         return; // Niets doen
     }
 
+    $cms_rol_add_start = microtime(TRUE);
+    watchdog('civicrm_timing', base_microtimer("START cms_rol_add [UID: $drupal_id / ROL: $cmsrol]"), NULL, WATCHDOG_DEBUG);
+
     wachthond($extdebug,3, "########################################################################");
     wachthond($extdebug,3, "### ACL - TOEVOEGEN ROL $cmsrol AAN UID $drupal_id",          $displayname);
     wachthond($extdebug,3, "########################################################################");
@@ -981,11 +990,14 @@ function cms_rol_add($drupal_id, $displayname, $cmsrol) {
     if ($role = user_role_load_by_name($cmsrol)) {
         user_multiple_role_edit(array($drupal_id), 'add_role', $role->rid);
     }
+
+    $total_cms_rol_add_duur = number_format(microtime(TRUE) - $cms_rol_add_start, 3);
+    watchdog('civicrm_timing', base_microtimer("EINDE cms_rol_add"), NULL, WATCHDOG_DEBUG);
 }
 
 function cms_rol_remove($drupal_id, $displayname, $cmsrol) {
 
-    $extdebug       = 0;           
+    $extdebug = 'acl.groups'; // Kanaal voor centrale debug-config; niveau wordt opgezocht in ozk.debug.config.php
 
     wachthond($extdebug,1, 'drupal_id',     $drupal_id);
     wachthond($extdebug,1, 'displayname',   $displayname);
@@ -997,8 +1009,11 @@ function cms_rol_remove($drupal_id, $displayname, $cmsrol) {
 
     // Double check: heeft hij de rol wel? Zo niet, dan hoeven we niks te doen.
     if (cms_rol_check($drupal_id, $displayname, $cmsrol) == 0) {
-        return; 
+        return;
     }
+
+    $cms_rol_remove_start = microtime(TRUE);
+    watchdog('civicrm_timing', base_microtimer("START cms_rol_remove [UID: $drupal_id / ROL: $cmsrol]"), NULL, WATCHDOG_DEBUG);
 
     wachthond($extdebug,3, "########################################################################");
     wachthond($extdebug,3, "### ACL - VERWIJDEREN ROL $cmsrol VAN UID $drupal_id",        $displayname);
@@ -1007,6 +1022,9 @@ function cms_rol_remove($drupal_id, $displayname, $cmsrol) {
     if ($role = user_role_load_by_name($cmsrol)) {
         user_multiple_role_edit(array($drupal_id), 'remove_role', $role->rid);
     }
+
+    $total_cms_rol_remove_duur = number_format(microtime(TRUE) - $cms_rol_remove_start, 3);
+    watchdog('civicrm_timing', base_microtimer("EINDE cms_rol_remove"), NULL, WATCHDOG_DEBUG);
 }
 
 /**
@@ -1018,7 +1036,7 @@ function cms_rol_remove($drupal_id, $displayname, $cmsrol) {
  */
 function permissions_add($contact_id, $drupal_id, $displayname, $acl_array) {
 
-    $extdebug = 3; // 1 = basic // 2 = verbose // 3 = params // 4 = results
+    $extdebug = 'acl.custom'; // Kanaal voor centrale debug-config; niveau wordt opgezocht in ozk.debug.config.php
 
     // 1. Variabelen uitpakken
     $aclgroup             = $acl_array['aclgroup']          ?? NULL;
@@ -1030,6 +1048,9 @@ function permissions_add($contact_id, $drupal_id, $displayname, $acl_array) {
     if (empty($contact_id) || empty($aclgroup)) {
         return;
     }
+
+    $permissions_add_start = microtime(TRUE);
+    watchdog('civicrm_timing', base_microtimer("START permissions_add [CID: $contact_id / GRP: $aclgroup]"), NULL, WATCHDOG_DEBUG);
 
     // -------------------------------------------------------------------------
     // STAP 1: HAAL HET ID OP (Cruciaal tegen duplicates)
@@ -1097,6 +1118,9 @@ function permissions_add($contact_id, $drupal_id, $displayname, $acl_array) {
             cms_rol_add($drupal_id, $displayname, $cmsrol);
         }
     }
+
+    $total_permissions_add_duur = number_format(microtime(TRUE) - $permissions_add_start, 3);
+    watchdog('civicrm_timing', base_microtimer("EINDE permissions_add"), NULL, WATCHDOG_DEBUG);
 }
 
 /**
@@ -1106,7 +1130,7 @@ function permissions_add($contact_id, $drupal_id, $displayname, $acl_array) {
  */
 function permissions_rem($contact_id, $drupal_id, $displayname, $acl_array) {
 
-    $extdebug = 0; 
+    $extdebug = 'acl.custom'; // Kanaal voor centrale debug-config; niveau wordt opgezocht in ozk.debug.config.php
 
     $aclgroup             = $acl_array['aclgroup']          ?? NULL;
     $cmsrol               = $acl_array['cmsrol']            ?? NULL;
@@ -1117,6 +1141,9 @@ function permissions_rem($contact_id, $drupal_id, $displayname, $acl_array) {
     if (empty($contact_id) || empty($aclgroup)) {
         return;
     }
+
+    $permissions_rem_start = microtime(TRUE);
+    watchdog('civicrm_timing', base_microtimer("START permissions_rem [CID: $contact_id / GRP: $aclgroup]"), NULL, WATCHDOG_DEBUG);
 
     // STAP 1: ID en Status ophalen
     $check = civicrm_api4('GroupContact', 'get', [
@@ -1154,6 +1181,9 @@ function permissions_rem($contact_id, $drupal_id, $displayname, $acl_array) {
             cms_rol_remove($drupal_id, $displayname, $cmsrol);
         }
     }
+
+    $total_permissions_rem_duur = number_format(microtime(TRUE) - $permissions_rem_start, 3);
+    watchdog('civicrm_timing', base_microtimer("EINDE permissions_rem"), NULL, WATCHDOG_DEBUG);
 }
 
 /**
