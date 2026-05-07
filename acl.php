@@ -803,7 +803,7 @@ function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_
 
     $is_bestuur = acl_group_get($contact_id, $gid_bestuur, 'check')['group_member'];
 
-    if ($is_bestuur || $group_staf_member || $ditjaarleidyes) {
+    if (($is_bestuur == 1 || $group_staf_member == 1 || $ditjaarleidyes == 1) && $ditjaardeelyes == 0) {
         
         $events_cache = find_eventids();
         $kampids_toer = $events_cache['toer'] ?? [];
