@@ -1210,9 +1210,13 @@ function acl_helper_get_takenrollen_matrix($contact_id) {
         'event_gedrag0_id'   => 0, 
         'event_gedrag1_id'   => 0, 
         'event_gedrag2_id'   => 0, 
-        'event_boekje0_id'   => 0, 
-        'event_boekje1_id'   => 0, 
+        'event_boekje0_id'   => 0,
+        'event_boekje1_id'   => 0,
         'event_boekje2_id'   => 0,
+        'event_ehbo0_id'     => 0,
+        'event_ehbo1_id'     => 0,
+        'event_ehbo2_id'     => 0,
+        'event_ehbo3_id'     => 0,
     ];
 
     // Haal evenementen van dit jaar op met de API4 namen (Taken_rollen.Veldnaam)
@@ -1235,6 +1239,10 @@ function acl_helper_get_takenrollen_matrix($contact_id) {
             'Taken_rollen.hoofd_keuken_1',
             'Taken_rollen.hoofd_keuken_2',
             'Taken_rollen.hoofd_keuken_3',
+            'Taken_rollen.hoofd_ehbo',
+            'Taken_rollen.ehbo_team_1',
+            'Taken_rollen.ehbo_team_2',
+            'Taken_rollen.ehbo_team_3',
         ],
         'where' => [
             ['start_date', '>=', "$huidig_jaar-01-01"], 
