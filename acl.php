@@ -2,7 +2,7 @@
 
 /**
  * =======================================================================================
- * FUNCTIE-INDEX: acl.php
+ * FUNCTIE-INDEX: acl.php  (hooks + centrale configuratie)
  * =======================================================================================
  *   acl_civicrm_config()                 Implements hook_civicrm_config().
  *   acl_civicrm_install()                Implements hook_civicrm_install().
@@ -10,23 +10,22 @@
  *   acl_civicrm_custom()
  *   acl_group_sync()                     HELPER: SMART SYNC
  *   acl_civicrm_configure()              HOOFDFUNCTIE: ACL CONFIGURATIE
- *   acl_group_remove()                   HELPER: GROUP REMOVE (MET HISTORIE BEHOUD)
- *   acl_group_update()
- *   acl_group_create()
- *   cms_rol_check()
- *   cms_rol_add()
- *   cms_rol_remove()
- *   permissions_add()                    HELPER: PERMISSIONS ADD (ROBUUSTE VERSIE)
- *   permissions_rem()                    HELPER: PERMISSIONS REMOVE (MET HISTORIE BEHOUD)
  *   acl_helper_get_takenrollen_matrix()  HELPER: MATRIX (MET NIEUWE KEYS)
  *   acl_civicrm_summaryActions()         Implements hook_civicrm_summaryActions().
  *   acl_civicrm_pageRun()                Implements hook_civicrm_pageRun().
  *   acl_civicrm_searchTasks()            Implements hook_civicrm_searchTasks().
+ *
+ * Verplaatste functies (zie aparte bestanden):
+ *   acl.permissions.php  — permissions_add/rem, acl_group_remove/update/create,
+ *                          cms_rol_check/add/remove
+ *   acl.eventreg.php     — acl_eventreg_toerusting, acl_eventreg_kampstafmeeting
  * =======================================================================================
  */
 
 require_once 'acl.civix.php';
 require_once 'acl.helpers.php';
+require_once 'acl.permissions.php';
+require_once 'acl.eventreg.php';
 
 use CRM_Acl_ExtensionUtil as E;
 
@@ -222,7 +221,19 @@ function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_
         // Poging 2: Fallback (Eenvoudige telling op basis van inschrijvingstype)
         if (empty($ditjaar_array)) {
             if (empty($allpart_array)) {
-                wachthond($extdebug, 1, "ACL FALLBACK ERROR: Status berekening onmogelijk, allpart_array is leeg.");
+                // Geen participant-records (bijv. alleen datum_belangstelling ingevuld).
+                // We maken toch een minimale lege array aan zodat de abort-check op
+                // regel 317 niet triggert. De ooit-groepen (regel 485+) draaien dan
+                // nog gewoon op basis van datum_belangstelling en keren_deel/leid.
+                wachthond($extdebug, 1, "ACL FALLBACK: Geen allpart_array — contact heeft geen inschrijvingen (bijv. alleen belangstelling). Minimale array aanmaken.");
+                $ditjaar_array  = [
+                    'ditjaarleidyes' => 0,
+                    'ditjaardeelyes' => 0,
+                    'ditjaarleidnot' => 0,
+                    'ditjaardeelnot' => 0,
+                    'ditjaardeeltst' => 0,
+                ];
+                wachthond($extdebug, 3, ">> FALLBACK MINIMAAL: alle flags 0 (geen kampen dit jaar)");
             } else {
                 wachthond($extdebug, 3, ">> START FALLBACK CALCULATIE");
                 $count_leid_pos = $allpart_array['result_allpart_pos_leid_count'] ?? 0;
@@ -234,7 +245,7 @@ function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_
                     'ditjaardeelyes' => ($count_deel_pos > 0) ? 1 : 0,
                     'ditjaarleidnot' => ($count_leid_pos == 0 && $count_neg > 0) ? 1 : 0,
                     'ditjaardeelnot' => ($count_deel_pos == 0 && $count_neg > 0) ? 1 : 0,
-                    'ditjaardeeltst' => 0, 
+                    'ditjaardeeltst' => 0,
                 ];
                 wachthond($extdebug, 3, ">> FALLBACK RESULTAAT: [LeidYes: " . $ditjaar_array['ditjaarleidyes'] . "]");
             }
@@ -355,15 +366,15 @@ function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_
     // Hier koppel je de kamp-code (uit de database) aan de diverse Groep ID's.
     
     $camp_map = [
-        'kk1' => ['gedrag' => 1766, 'drukwerk' => 1666, 'keuken' => 1675, 'keukenteam' => 1871, 'hl' => 1853, 'kt' => 1883, 'google' => '01baon6m3wo0451'],
-        'kk2' => ['gedrag' => 1767, 'drukwerk' => 1667, 'keuken' => 1676, 'keukenteam' => 1872, 'hl' => 1854, 'kt' => 1884, 'google' => '00vx12273fgfnd5'],
-        'bk1' => ['gedrag' => 1768, 'drukwerk' => 1668, 'keuken' => 1677, 'keukenteam' => 1873, 'hl' => 1855, 'kt' => 1885, 'google' => '00lnxbz9161bbzw'],
-        'bk2' => ['gedrag' => 1769, 'drukwerk' => 1669, 'keuken' => 1678, 'keukenteam' => 1874, 'hl' => 1856, 'kt' => 1886, 'google' => '0147n2zr2s87rx7'],
-        'tk1' => ['gedrag' => 1770, 'drukwerk' => 1670, 'keuken' => 1679, 'keukenteam' => 1875, 'hl' => 1857, 'kt' => 1887, 'google' => '02xcytpi1fs7xwo'],
-        'tk2' => ['gedrag' => 1771, 'drukwerk' => 1671, 'keuken' => 1680, 'keukenteam' => 1876, 'hl' => 1858, 'kt' => 1888, 'google' => '01opuj5n2028q4s'],
-        'jk1' => ['gedrag' => 1772, 'drukwerk' => 1672, 'keuken' => 1681, 'keukenteam' => 1877, 'hl' => 1859, 'kt' => 1889, 'google' => '02bn6wsx3827ior'],
-        'jk2' => ['gedrag' => 1773, 'drukwerk' => 1673, 'keuken' => 1682, 'keukenteam' => 1878, 'hl' => 1860, 'kt' => 1890, 'google' => '030j0zll0m5pg5h'],
-        'top' => ['gedrag' => 1774, 'drukwerk' => 1674, 'keuken' => 1683, 'keukenteam' => 1879, 'hl' => 1861, 'kt' => 1891, 'google' => '00haapch3zvbjru'],
+        'kk1' => ['gedrag' => 1766, 'drukwerk' => 1666, 'keuken' => 1675, 'keukenteam' => 1871, 'hl' => 1853, 'kt' => 1883],
+        'kk2' => ['gedrag' => 1767, 'drukwerk' => 1667, 'keuken' => 1676, 'keukenteam' => 1872, 'hl' => 1854, 'kt' => 1884],
+        'bk1' => ['gedrag' => 1768, 'drukwerk' => 1668, 'keuken' => 1677, 'keukenteam' => 1873, 'hl' => 1855, 'kt' => 1885],
+        'bk2' => ['gedrag' => 1769, 'drukwerk' => 1669, 'keuken' => 1678, 'keukenteam' => 1874, 'hl' => 1856, 'kt' => 1886],
+        'tk1' => ['gedrag' => 1770, 'drukwerk' => 1670, 'keuken' => 1679, 'keukenteam' => 1875, 'hl' => 1857, 'kt' => 1887],
+        'tk2' => ['gedrag' => 1771, 'drukwerk' => 1671, 'keuken' => 1680, 'keukenteam' => 1876, 'hl' => 1858, 'kt' => 1888],
+        'jk1' => ['gedrag' => 1772, 'drukwerk' => 1672, 'keuken' => 1681, 'keukenteam' => 1877, 'hl' => 1859, 'kt' => 1889],
+        'jk2' => ['gedrag' => 1773, 'drukwerk' => 1673, 'keuken' => 1682, 'keukenteam' => 1878, 'hl' => 1860, 'kt' => 1890],
+        'top' => ['gedrag' => 1774, 'drukwerk' => 1674, 'keuken' => 1683, 'keukenteam' => 1879, 'hl' => 1861, 'kt' => 1891],
     ];
 
     // Algemene Groep ID's (Constanten)
@@ -797,62 +808,11 @@ function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_
         permissions_rem($contact_id, $drupal_id, $displayname, $acl_kt_algemeen);
     }
 
-    wachthond($extdebug,2, "########################################################################");
-    wachthond($extdebug,1, "### ACL 10.0 EVENT REGISTRATIE (TOERUSTING)");
-    wachthond($extdebug,2, "########################################################################");
-
     $is_bestuur = acl_group_get($contact_id, $gid_bestuur, 'check')['group_member'];
 
-    if (($is_bestuur == 1 || $group_staf_member == 1 || $ditjaarleidyes == 1) && $ditjaardeelyes == 0) {
-        
-        $events_cache = find_eventids();
-        $kampids_toer = $events_cache['toer'] ?? [];
-        
-        foreach ($kampids_toer as $eid) {
-            if ($eid > 0) {
-                
-                $params_part_get = [
-                    'checkPermissions'  => FALSE,
-                    'select'            => [
-                        'id',
-                    ],
-                    'where'             => [
-                        ['contact_id',  '=', $contact_id],
-                        ['event_id',    '=', $eid],
-                    ],
-                    'limit'             => 1,
-                ];
-                
-                wachthond($extdebug, 7, "params_part_get",          $params_part_get);
-                $result_part_get    = civicrm_api4('Participant','get', $params_part_get);
-                wachthond($extdebug, 9, "result_part_get",          $result_part_get);
-                $check_exists       = $result_part_get->first();
+    acl_eventreg_toerusting($contact_id, $is_bestuur, $group_staf_member, $ditjaarleidyes, $today_datetime, $extdebug);
+    acl_eventreg_kampstafmeeting($contact_id, $group_staf_member, $today_datetime, $extdebug);
 
-                if (!$check_exists) {
-                    $params_part_create = [
-                        'checkPermissions'  => FALSE,
-                        'values'            => [
-                            'contact_id'    => $contact_id,
-                            'event_id'      => $eid,
-                            'register_date' => $today_datetime,
-                            'status_id'     => 24,  
-                            'role_id'       => [7], 
-                        ],
-                    ];
-
-                    wachthond($extdebug, 7, "params_part_create",           $params_part_create);
-                    $result_part_create = civicrm_api4('Participant','create', $params_part_create);
-                    wachthond($extdebug, 9, "result_part_create",           $result_part_create);
-                    
-                    wachthond($extdebug, 1, "ACL SUCCESS: Automatische RSVP aangemaakt voor Event $eid", "PID: " . $result_part_create->first()['id']);
-                } else {
-                    wachthond($extdebug, 3, "ACL SKIP: Registratie voor Event $eid bestaat al", "PID: " . $check_exists['id']);
-                }
-            }
-        }
-    }
-
-    $total_acl_configure_duur = number_format(microtime(TRUE) - $acl_configure_start, 3);
     watchdog('civicrm_timing', base_microtimer("EINDE acl_configure"), NULL, WATCHDOG_DEBUG);
 
     wachthond($extdebug, 2, "########################################################################");
@@ -862,329 +822,13 @@ function acl_civicrm_configure($contact_id, $array_contditjaar = NULL, $ditjaar_
 
 /**
  * ============================================================================
- * HELPER: GROUP REMOVE (MET HISTORIE BEHOUD)
+ * HELPER: MATRIX (MET NIEUWE KEYS)
+ * ============================================================================
+ * (permissions_add, permissions_rem, acl_group_remove, acl_group_update,
+ *  acl_group_create, cms_rol_check, cms_rol_add, cms_rol_remove zijn
+ *  verplaatst naar acl.logic.permissions.php)
  * ============================================================================
  */
-function acl_group_remove($contactid, $group, $group_label) {
-
-    $extdebug = 'acl.groups'; // Kanaal voor centrale debug-config; niveau wordt opgezocht in ozk.debug.config.php
-    $apidebug       = FALSE;
-    $extwrite       = 1;
-
-    $contact_id     = $contactid;
-    $group_ids      = is_array($group) ? $group : [$group];
-
-    wachthond($extdebug, 4, "contact_id",    $contact_id);
-    wachthond($extdebug, 4, "group_array",   $group_ids);
-
-    if ($contact_id AND !empty($group_ids)) {
-
-        // STAP 1: CHECK (Welke van deze groepen zijn NU actief 'Added'?)
-        $results = civicrm_api4('GroupContact', 'get', [
-            'checkPermissions' => FALSE,
-            'select' => ['id', 'group_id'], // We hebben het unieke ID nodig voor de update
-            'where' => [
-                ['contact_id', '=', $contact_id],
-                ['group_id', 'IN', $group_ids],
-                ['status', '=', 'Added'] 
-            ]
-        ]);
-
-        $ids_to_remove = [];
-        $groups_found  = [];
-
-        foreach ($results as $row) {
-            $ids_to_remove[] = $row['id'];       // Het unieke koppel-ID
-            $groups_found[]  = $row['group_id']; // Voor de log
-        }
-
-        // STAP 2: UPDATE NAAR REMOVED
-        if (!empty($ids_to_remove)) {
-            wachthond($extdebug, 3, "########################################################################");
-            wachthond($extdebug, 3, "### ACL - VERWIJDER CID $contact_id UIT GROEPEN $group_label",  $groups_found);
-            wachthond($extdebug, 3, "########################################################################");
-
-            if ($extwrite == 1) {
-                civicrm_api4('GroupContact', 'update', [
-                    'checkPermissions' => FALSE,
-                    'where'  => [['id', 'IN', $ids_to_remove]],
-                    'values' => ['status' => 'Removed'],
-                ]);
-                
-                wachthond($extdebug, 1, 'Verwijderd uit ACL groepen (Status Removed)', implode(',', $groups_found));
-            }
-        } else {
-            wachthond($extdebug, 4, 'Verwijderd uit ACL groep [SKIPPED - WAS GEEN LID]', $group_label);
-        }
-    }
-}
-
-// acl_group_update en acl_group_create zijn feitelijk aliases voor permissions_add 
-// maar worden behouden voor backward compatibility als ze elders worden aangeroepen.
-function acl_group_update($contactid, $group_id, $group_label) {
-    permissions_add($contactid, NULL, "CID $contactid", ['aclgroup' => $group_id, 'acl_group_label' => $group_label]);
-}
-
-function acl_group_create($contactid, $group_id, $group_label) {
-    permissions_add($contactid, NULL, "CID $contactid", ['aclgroup' => $group_id, 'acl_group_label' => $group_label]);
-}
-
-function cms_rol_check($drupal_id, $displayname, $cmsrol) {
-
-    $extdebug = 'acl.groups'; // Kanaal voor centrale debug-config; niveau wordt opgezocht in ozk.debug.config.php
-    $userhasrole = 0;
-
-    // Cache voor Role ID's (Naam -> ID mapping) om Drupal calls te minimaliseren
-    static $role_map_cache = [];
-
-    if (empty($drupal_id) OR empty($cmsrol)) {
-        return 0;
-    }
-
-    $cmsuser = user_load($drupal_id);
-    if (!$cmsuser) return 0;
-
-    // Haal Role ID op (uit cache of DB)
-    if (!isset($role_map_cache[$cmsrol])) {
-        $role = user_role_load_by_name($cmsrol);
-        if ($role) {
-            $role_map_cache[$cmsrol] = $role->rid;
-        } else {
-            $role_map_cache[$cmsrol] = FALSE; 
-        }
-    }
-    
-    $rid = $role_map_cache[$cmsrol];
-
-    if ($rid && isset($cmsuser->roles[$rid])) {
-        $userhasrole = 1;
-    }
-
-    return $userhasrole;
-}
-
-function cms_rol_add($drupal_id, $displayname, $cmsrol) {
-
-    $extdebug = 'acl.groups'; // Kanaal voor centrale debug-config; niveau wordt opgezocht in ozk.debug.config.php
-
-    wachthond($extdebug,1, 'drupal_id',     $drupal_id);
-    wachthond($extdebug,1, 'displayname',   $displayname);
-
-    if (!$drupal_id OR !$cmsrol) {
-        wachthond($extdebug,1, 'cms_rol_add', 'input parameters missing');
-        return;
-    }
-
-    // Double check: heeft hij de rol al?
-    if (cms_rol_check($drupal_id, $displayname, $cmsrol) == 1) {
-        return; // Niets doen
-    }
-
-    $cms_rol_add_start = microtime(TRUE);
-    watchdog('civicrm_timing', base_microtimer("START cms_rol_add [UID: $drupal_id / ROL: $cmsrol]"), NULL, WATCHDOG_DEBUG);
-
-    wachthond($extdebug,3, "########################################################################");
-    wachthond($extdebug,3, "### ACL - TOEVOEGEN ROL $cmsrol AAN UID $drupal_id",          $displayname);
-    wachthond($extdebug,3, "########################################################################");
-
-    if ($role = user_role_load_by_name($cmsrol)) {
-        user_multiple_role_edit(array($drupal_id), 'add_role', $role->rid);
-    }
-
-    $total_cms_rol_add_duur = number_format(microtime(TRUE) - $cms_rol_add_start, 3);
-    watchdog('civicrm_timing', base_microtimer("EINDE cms_rol_add"), NULL, WATCHDOG_DEBUG);
-}
-
-function cms_rol_remove($drupal_id, $displayname, $cmsrol) {
-
-    $extdebug = 'acl.groups'; // Kanaal voor centrale debug-config; niveau wordt opgezocht in ozk.debug.config.php
-
-    wachthond($extdebug,1, 'drupal_id',     $drupal_id);
-    wachthond($extdebug,1, 'displayname',   $displayname);
-
-    if (!$drupal_id OR !$cmsrol) {
-        wachthond($extdebug,1, 'cms_rol_remove', 'input parameters missing');        
-        return;
-    }
-
-    // Double check: heeft hij de rol wel? Zo niet, dan hoeven we niks te doen.
-    if (cms_rol_check($drupal_id, $displayname, $cmsrol) == 0) {
-        return;
-    }
-
-    $cms_rol_remove_start = microtime(TRUE);
-    watchdog('civicrm_timing', base_microtimer("START cms_rol_remove [UID: $drupal_id / ROL: $cmsrol]"), NULL, WATCHDOG_DEBUG);
-
-    wachthond($extdebug,3, "########################################################################");
-    wachthond($extdebug,3, "### ACL - VERWIJDEREN ROL $cmsrol VAN UID $drupal_id",        $displayname);
-    wachthond($extdebug,3, "########################################################################");
-
-    if ($role = user_role_load_by_name($cmsrol)) {
-        user_multiple_role_edit(array($drupal_id), 'remove_role', $role->rid);
-    }
-
-    $total_cms_rol_remove_duur = number_format(microtime(TRUE) - $cms_rol_remove_start, 3);
-    watchdog('civicrm_timing', base_microtimer("EINDE cms_rol_remove"), NULL, WATCHDOG_DEBUG);
-}
-
-/**
- * ============================================================================
- * HELPER: PERMISSIONS ADD (ROBUUSTE VERSIE)
- * ============================================================================
- * Voegt toe. Voorkomt "Duplicate Entry" fouten door te checken of er al een
- * (verwijderde) regel bestaat. Zo ja -> Update. Zo nee -> Create.
- */
-function permissions_add($contact_id, $drupal_id, $displayname, $acl_array) {
-
-    $extdebug = 'acl.custom'; // Kanaal voor centrale debug-config; niveau wordt opgezocht in ozk.debug.config.php
-
-    // 1. Variabelen uitpakken
-    $aclgroup             = $acl_array['aclgroup']          ?? NULL;
-    $cmsrol               = $acl_array['cmsrol']            ?? NULL;
-    $rolname              = $acl_array['rolname']           ?? NULL;
-    $acl_group_label      = $acl_array['acl_group_label']   ?? NULL;
-    $cms_hasrol           = $acl_array['cms_hasrol']        ?? NULL;
-
-    if (empty($contact_id) || empty($aclgroup)) {
-        return;
-    }
-
-    $permissions_add_start = microtime(TRUE);
-    watchdog('civicrm_timing', base_microtimer("START permissions_add [CID: $contact_id / GRP: $aclgroup]"), NULL, WATCHDOG_DEBUG);
-
-    // -------------------------------------------------------------------------
-    // STAP 1: HAAL HET ID OP (Cruciaal tegen duplicates)
-    // -------------------------------------------------------------------------
-    // We moeten weten of er al een regel bestaat (ook al is die 'Removed')
-    // zodat we die kunnen updaten in plaats van een nieuwe inserten.
-    
-    $check = civicrm_api4('GroupContact', 'get', [
-        'checkPermissions' => FALSE,
-        'select' => ['id', 'status'], // <--- We hebben het ID nodig!
-        'where' => [
-            ['contact_id', '=', $contact_id],
-            ['group_id', '=', $aclgroup]
-        ],
-        'limit' => 1
-    ])->first();
-
-    $real_status = $check['status'] ?? 'None';
-    $link_id     = $check['id']     ?? NULL;
-
-    // -------------------------------------------------------------------------
-    // STAP 2: ACTIE BEPALEN
-    // -------------------------------------------------------------------------
-    
-    // Scenario A: Al lid. Niets doen.
-    if ($real_status === 'Added') {
-        // wachthond($extdebug, 3, "Skipped ACL add (already member)", "$displayname -> $aclgroup");
-    }
-    
-    // Scenario B: Bestaat wel (Removed/Pending), dus UPDATE.
-    elseif ($link_id) {
-        
-        wachthond($extdebug, 1, "### ACL - UPDATE ACTIE: $displayname -> Groep $acl_group_label ($aclgroup)", "[Was: $real_status, ID: $link_id]");
-        
-        $result = civicrm_api4('GroupContact', 'update', [
-            'checkPermissions' => FALSE,
-            'where' => [['id', '=', $link_id]], // Update op basis van primair ID
-            'values' => ['status' => 'Added']
-        ]);
-        wachthond($extdebug, 9, 'API Result GroupContact Update', $result);
-    }
-    
-    // Scenario C: Bestaat niet, dus CREATE.
-    else {
-        
-        wachthond($extdebug, 1, "### ACL - CREATE ACTIE: $displayname -> Groep $acl_group_label ($aclgroup)", "[Nieuw]");
-        
-        $result = civicrm_api4('GroupContact', 'create', [
-            'checkPermissions' => FALSE,
-            'values' => [
-                'contact_id' => $contact_id,
-                'group_id'   => $aclgroup,
-                'status'     => 'Added'
-            ]
-        ]);
-        wachthond($extdebug, 9, 'API Result GroupContact Create', $result);
-    }
-
-    // -------------------------------------------------------------------------
-    // STAP 3: DRUPAL ROL (CMS)
-    // -------------------------------------------------------------------------
-    
-    if ($drupal_id > 0 && !empty($cmsrol)) {
-        if ($cms_hasrol != 1) {
-            cms_rol_add($drupal_id, $displayname, $cmsrol);
-        }
-    }
-
-    $total_permissions_add_duur = number_format(microtime(TRUE) - $permissions_add_start, 3);
-    watchdog('civicrm_timing', base_microtimer("EINDE permissions_add"), NULL, WATCHDOG_DEBUG);
-}
-
-/**
- * ============================================================================
- * HELPER: PERMISSIONS REMOVE (MET HISTORIE BEHOUD)
- * ============================================================================
- */
-function permissions_rem($contact_id, $drupal_id, $displayname, $acl_array) {
-
-    $extdebug = 'acl.custom'; // Kanaal voor centrale debug-config; niveau wordt opgezocht in ozk.debug.config.php
-
-    $aclgroup             = $acl_array['aclgroup']          ?? NULL;
-    $cmsrol               = $acl_array['cmsrol']            ?? NULL;
-    $rolname              = $acl_array['rolname']           ?? NULL;
-    $acl_group_label      = $acl_array['acl_group_label']   ?? NULL;
-    $cms_hasrol           = $acl_array['cms_hasrol']        ?? NULL;
-
-    if (empty($contact_id) || empty($aclgroup)) {
-        return;
-    }
-
-    $permissions_rem_start = microtime(TRUE);
-    watchdog('civicrm_timing', base_microtimer("START permissions_rem [CID: $contact_id / GRP: $aclgroup]"), NULL, WATCHDOG_DEBUG);
-
-    // STAP 1: ID en Status ophalen
-    $check = civicrm_api4('GroupContact', 'get', [
-        'checkPermissions' => FALSE,
-        'select' => ['id', 'status'],
-        'where' => [
-            ['contact_id', '=', $contact_id],
-            ['group_id', '=', $aclgroup]
-        ],
-        'limit' => 1
-    ])->first();
-
-    $real_status = $check['status'] ?? 'None';
-    $link_id     = $check['id']     ?? NULL;
-
-    // STAP 2: Alleen actie ondernemen als ze nu lid ('Added') of hangend ('Pending') zijn.
-    if ($link_id && in_array($real_status, ['Added', 'Pending'])) {
-
-        wachthond($extdebug, 1, "### ACL - REMOVE ACTIE: $displayname uit Groep $acl_group_label ($aclgroup)", "[Was: $real_status]");
-
-        // AANPASSING: We gebruiken UPDATE naar 'Removed' i.p.v. DELETE.
-        // Hierdoor blijft hij zichtbaar in de historie ('Verwijderde groepen').
-        $result = civicrm_api4('GroupContact', 'update', [
-            'checkPermissions' => FALSE,
-            'where' => [['id', '=', $link_id]],
-            'values' => ['status' => 'Removed']
-        ]);
-        
-        wachthond($extdebug, 9, 'API Result GroupContact Set Removed', $result);
-    } 
-
-    // STAP 3: DRUPAL ROL
-    if ($drupal_id > 0 && !empty($cmsrol)) {
-        if (cms_rol_check($drupal_id, $displayname, $cmsrol) == 1) {
-            cms_rol_remove($drupal_id, $displayname, $cmsrol);
-        }
-    }
-
-    $total_permissions_rem_duur = number_format(microtime(TRUE) - $permissions_rem_start, 3);
-    watchdog('civicrm_timing', base_microtimer("EINDE permissions_rem"), NULL, WATCHDOG_DEBUG);
-}
 
 /**
  * ============================================================================
@@ -1307,8 +951,13 @@ function acl_civicrm_pageRun(&$page) {
   // Alleen uitvoeren als onze trigger in de URL staat
   if (CRM_Utils_Request::retrieve('run_acl_sync', 'Int') === 1) {
     $contact_id = CRM_Utils_Request::retrieve('cid', 'Positive');
-    
+
     if ($contact_id) {
+      // Gooi de event-ID cache weg zodat ACL 10.0 altijd actuele events ziet.
+      // Zonder dit kan find_eventids() een verouderd resultaat teruggeven als er
+      // een nieuw event (bv. trainingsdag) was aangemaakt nadat de cache gevuld was.
+      Civi::cache()->delete('cache_all_event_ids_v2');
+
       if (function_exists('acl_civicrm_configure')) {
         acl_civicrm_configure($contact_id);
       }
