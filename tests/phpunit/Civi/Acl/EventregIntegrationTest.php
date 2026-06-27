@@ -85,7 +85,7 @@ class EventregIntegrationTest extends \PHPUnit\Framework\TestCase implements End
                 'contact_id'    => $this->contact_id,
                 'event_id'      => $this->leiding_event_id,
                 'status_id'     => 1,    // Geregistreerd
-                'role_id'       => [1],  // Leiding
+                'role_id'       => [6],  // Leiding (option_value 6; let op: 1 = Bezoeker)
                 'register_date' => $today,
             ],
         ]);
@@ -157,6 +157,17 @@ class EventregIntegrationTest extends \PHPUnit\Framework\TestCase implements End
         $reg = $registraties->first();
         $this->assertEquals(24, $reg['status_id'],
             "De automatische RSVP moet status 24 (Nog niet bekend) hebben."
+        );
+
+        // Een toerusting/trainingsdag is een STAF-event → de RSVP moet rol Leiding (6)
+        // krijgen, NIET Deelnemer (7). Vóór de fix schreef _acl_eventreg_ensure_participant()
+        // hard [7] weg, waardoor staf als deelnemer in de lijsten verscheen.
+        $rollen = array_map('intval', (array) ($reg['role_id'] ?? []));
+        $this->assertContains(6, $rollen,
+            "Toerusting-RSVP moet rol Leiding (6) krijgen."
+        );
+        $this->assertNotContains(7, $rollen,
+            "Toerusting-RSVP mag NIET rol Deelnemer (7) krijgen (regressie: hardcoded [7])."
         );
     }
 
