@@ -26,8 +26,12 @@
  * @param string $today_datetime Datum/tijd voor register_date
  * @param string $log_label      Label voor debug-output ('Event' of 'Meeting')
  * @param string $extdebug       Debug-kanaal voor wachthond
+ * @param int    $role_id        Participant-rol (option_value participant_role).
+ *                               Toerusting/trainingsdag = 6 (Leiding),
+ *                               kampstafmeeting = 15 (Kampstaf). Géén [7] Deelnemer:
+ *                               dit zijn staf-events, geen deelnemer-events.
  */
-function _acl_eventreg_ensure_participant($contact_id, $eid, $today_datetime, $log_label, $extdebug) {
+function _acl_eventreg_ensure_participant($contact_id, $eid, $today_datetime, $log_label, $extdebug, $role_id) {
 
     $params_get = [
         'checkPermissions'  => FALSE,
@@ -52,7 +56,7 @@ function _acl_eventreg_ensure_participant($contact_id, $eid, $today_datetime, $l
                 'event_id'      => $eid,
                 'register_date' => $today_datetime,
                 'status_id'     => 24,  // Nog niet bekend (RSVP uitnodiging)
-                'role_id'       => [7], // Deelnemer
+                'role_id'       => [$role_id], // Staf-rol: Leiding (6) of Kampstaf (15), NIET Deelnemer
             ],
         ];
 
@@ -93,7 +97,8 @@ function acl_eventreg_toerusting($contact_id, $is_bestuur, $group_staf_member, $
 
         foreach ($kampids_toer as $eid) {
             if ($eid > 0) {
-                _acl_eventreg_ensure_participant($contact_id, $eid, $today_datetime, 'Event', $extdebug);
+                // Toerusting/trainingsdag is een staf-event → rol Leiding (6), niet Deelnemer.
+                _acl_eventreg_ensure_participant($contact_id, $eid, $today_datetime, 'Event', $extdebug, 6);
             }
         }
     }
@@ -123,7 +128,8 @@ function acl_eventreg_kampstafmeeting($contact_id, $group_staf_member, $today_da
 
         foreach ($kampids_meet as $eid) {
             if ($eid > 0) {
-                _acl_eventreg_ensure_participant($contact_id, $eid, $today_datetime, 'Meeting', $extdebug);
+                // Kampstafmeeting → rol Kampstaf (15).
+                _acl_eventreg_ensure_participant($contact_id, $eid, $today_datetime, 'Meeting', $extdebug, 15);
             }
         }
     }
